@@ -1,0 +1,4 @@
+hw_wallet/
+*.sqlite
+.env
+__pycache__/

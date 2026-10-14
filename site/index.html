@@ -1,0 +1,898 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>THE HIDDEN WITNESS</title>
+<!-- v18: the shielded proof door -->
+<meta name="description" content="Somewhere in this crowd is a witness. A Zcash portal by Berlin Studios for the Zcash community.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#d8d5ce; --paper-2:#c9c6be; --paper-3:#b9b6ae;
+    --ink:#141412; --ink-2:#3a3934; --dim:#6b6962;
+    --line:rgba(20,20,18,.28);
+    --display:"Silkscreen","Courier New",monospace;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--mono);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  /* film grain + overexposed vignette, decorative only */
+  .grain{position:fixed;inset:-50%;width:200%;height:200%;pointer-events:none;z-index:50;opacity:.22;mix-blend-mode:multiply}
+  .vignette{position:fixed;inset:0;pointer-events:none;z-index:49;background:radial-gradient(ellipse at 50% 40%,rgba(255,255,255,.35) 0%,rgba(255,255,255,0) 45%,rgba(20,20,18,.28) 100%)}
+  @media (prefers-reduced-motion:no-preference){.grain{animation:grain 1.2s steps(6) infinite}}
+  @keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-3%,2%)}40%{transform:translate(2%,-3%)}60%{transform:translate(-2%,-1%)}80%{transform:translate(3%,3%)}100%{transform:translate(0,0)}}
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,48px);position:relative;z-index:1}
+
+  .top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 20px;padding:20px 0 16px;border-bottom:1px solid var(--line);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase}
+  .top a{text-decoration:none;color:var(--ink-2)} .top a:hover{color:var(--ink)}
+
+  header.hero{padding:clamp(40px,8vw,96px) 0 clamp(24px,4vw,40px)}
+  .hero-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:clamp(16px,4vw,48px);align-items:center}
+  .logo{width:clamp(160px,24vw,300px);height:auto;display:block;image-rendering:pixelated}
+  @media (max-width:700px){.hero-grid{grid-template-columns:minmax(0,1fr)}.logo{order:-1;width:min(60vw,240px)}}
+  .kicker{margin:0 0 18px;font-size:.78rem;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2)}
+  h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(2.6rem,10vw,7.6rem);line-height:.9;letter-spacing:-.01em}
+  .lede{margin:24px 0 0;max-width:58ch;font-size:clamp(.98rem,1.5vw,1.1rem);color:var(--ink-2)}
+  .status{display:inline-flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-top:26px;padding:10px 14px;border:1px solid var(--ink);font-size:.82rem;letter-spacing:.06em;text-transform:uppercase}
+  .status b{font-family:var(--display);font-weight:400;font-size:1rem;letter-spacing:.04em}
+
+  section{padding:clamp(28px,4vw,44px) 0;border-top:1px solid var(--line)}
+  h2{margin:0 0 6px;font-family:var(--display);font-weight:700;font-size:clamp(1.4rem,3.4vw,2.2rem);line-height:1}
+  .sub{margin:0 0 20px;max-width:62ch;color:var(--ink-2)}
+
+  .crowd{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:4px}
+  @media (max-width:520px){.crowd{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:3px}}
+  .face{position:relative;aspect-ratio:1;background:var(--paper-3);overflow:hidden;cursor:pointer;border:0;padding:0}
+  .face img{width:100%;height:100%;object-fit:cover;display:block;filter:grayscale(1) contrast(1.35) brightness(1.08)}
+  .face.shielded::after{content:"";position:absolute;left:0;right:0;bottom:0;height:22%;background:var(--ink)}
+  .face.new{outline:3px solid var(--ink);outline-offset:-3px}
+  .face:hover img,.face:focus-visible img{filter:grayscale(1) contrast(1.6) brightness(.9)}
+  .crowd-note{margin:14px 0 0;min-height:1.6em;font-size:.84rem;color:var(--ink-2)}
+  .count{font-family:var(--display);font-size:.9rem;letter-spacing:.06em;margin:0 0 14px}
+
+  .join{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(20px,4vw,48px);align-items:start}
+  @media (max-width:820px){.join{grid-template-columns:minmax(0,1fr)}}
+  label.f{display:grid;gap:6px;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+  input[type=text]{font:inherit;font-size:1rem;padding:10px 12px;border:1px solid var(--ink);background:rgba(255,255,255,.35);color:var(--ink);width:min(100%,20rem)}
+  button.b{font:inherit;font-size:.84rem;letter-spacing:.06em;text-transform:uppercase;padding:10px 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer}
+  button.b.solid{background:var(--ink);color:var(--paper)}
+  button.b:hover:not(:disabled){background:var(--ink-2);color:var(--paper);border-color:var(--ink-2)}
+  button.b:disabled{opacity:.4;cursor:not-allowed}
+  .msg{margin:10px 0 0;min-height:1.4em;font-size:.84rem;color:var(--ink-2)}
+  .msg.err{color:#7a1f16}
+  .me{display:none;gap:14px;align-items:center;margin-top:18px}
+  .me.on{display:flex}
+  .me .face{width:88px;cursor:default}
+  .me p{margin:0;font-size:.9rem}
+  .choice{display:none;margin-top:16px;gap:8px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .choice.on{display:grid}
+  @media (max-width:480px){.choice.on{grid-template-columns:minmax(0,1fr)}}
+  .opt{text-align:left;font:inherit;padding:12px 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer}
+  .opt b{display:block;font-family:var(--display);font-weight:400;font-size:1rem;margin-bottom:4px}
+  .opt span{display:block;font-size:.8rem;color:var(--ink-2)}
+  .opt[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+  .opt[aria-pressed=true] span{color:var(--paper-2)}
+  .aside p{margin:0 0 12px;max-width:52ch;color:var(--ink-2)}
+
+  .bounty{border:1px dashed var(--ink);padding:clamp(18px,3vw,28px);max-width:760px}
+  .bounty p{margin:10px 0 0;max-width:60ch;color:var(--ink-2)}
+  .redact{display:inline-block;font:inherit;border:0;background:var(--ink);color:transparent;user-select:none;padding:0 .2em;margin:0 .1em;cursor:default}
+  .found{margin-top:14px !important;padding:10px 12px;border:1px solid var(--ink);color:var(--ink) !important;font-size:.9rem}
+  .face.door img{filter:grayscale(1) contrast(1.35) brightness(1.08) blur(0)}
+
+  /* the proof door */
+  .door{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(20px,4vw,48px);align-items:start}
+  @media (max-width:820px){.door{grid-template-columns:minmax(0,1fr)}}
+  .door form{display:grid;gap:14px;margin-top:6px}
+  .door form[hidden],.sealed[hidden],#doorShut[hidden]{display:none}
+  .door input[type=text]{width:100%}
+  .shut{margin:0;padding:14px 16px;border:1px dashed var(--ink);max-width:52ch}
+  .roundname{margin:0;font-family:var(--display);font-size:1rem;letter-spacing:.04em}
+  .sealed{margin-top:18px;border:1px solid var(--ink);padding:clamp(14px,3vw,22px);background:rgba(255,255,255,.18)}
+  .sealed h3{margin:0 0 12px;font-family:var(--display);font-size:1.3rem;line-height:1}
+  .qr{width:min(100%,260px);background:#fff;padding:10px;margin:0 0 14px}
+  .qr svg{display:block;width:100%;height:auto}
+  .pay{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;margin:14px 0 0}
+  .pay dt{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin-top:8px}
+  .pay dd{margin:0;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start}
+  .pay code,.pay pre{font-family:var(--mono);font-size:.78rem;background:rgba(255,255,255,.4);border:1px solid var(--line);padding:6px 8px;margin:0;overflow-wrap:anywhere;white-space:pre-wrap;flex:1 1 220px;min-width:0}
+  .pay button.b{padding:6px 10px;font-size:.72rem}
+  .note{margin:14px 0 0;font-size:.82rem;color:var(--ink-2);max-width:60ch}
+  .boardstats{margin:0 0 12px;font-size:.9rem}
+  .boardstats b{font-family:var(--display);font-size:1.4rem}
+  .board{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+  .board li{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:.84rem}
+  .board li b{font-family:var(--display);font-weight:400}
+  .board li a{color:var(--ink-2);overflow-wrap:anywhere}
+  .board li.empty{color:var(--ink-2)}
+  .dim{font-size:.78rem;color:var(--dim);margin:12px 0 0}
+
+  footer{padding:24px 0 48px;border-top:1px solid var(--line);font-size:.78rem;color:var(--dim)}
+  footer p{margin:0 0 6px;max-width:90ch}
+  .seatbox{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+  .seatbox h3{font-family:var(--display);font-size:clamp(28px,5vw,40px);line-height:1;margin:0}
+  .seatbox img{display:block;width:100%;max-width:100%;height:auto;border:1px solid var(--line)}
+  .seatbox .row{display:flex;flex-wrap:wrap;gap:10px}
+  .seatbox[hidden],.preview[hidden]{display:none}
+
+  /* hero: game framing + live seat meter */
+  .cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+  a.b{display:inline-block;text-decoration:none;font-size:.84rem;letter-spacing:.06em;text-transform:uppercase;padding:12px 16px;border:1px solid var(--ink);color:var(--ink)}
+  a.b.solid{background:var(--ink);color:var(--paper)}
+  a.b:hover{background:var(--ink-2);color:var(--paper);border-color:var(--ink-2)}
+  .meter{margin-top:30px;max-width:600px}
+  .meter-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px;margin-bottom:10px}
+  .meter-top b{font-family:var(--display);font-weight:700;font-size:clamp(1.6rem,4vw,2.4rem);line-height:1}
+  .meter-top span{font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+  .seats{display:grid;grid-template-columns:repeat(50,minmax(0,1fr));gap:2px}
+  .seats i{display:block;aspect-ratio:1;border:1px solid rgba(20,20,18,.35)}
+  .seats i.t{background:var(--ink);border-color:var(--ink)}
+  .seats i.nx{border-color:var(--ink)}
+  @media (prefers-reduced-motion:no-preference){.seats i.nx{animation:blink 1s steps(2) infinite}.seats i.fresh{animation:pop .6s ease-out}}
+  @keyframes blink{50%{background:var(--ink)}}
+  @keyframes pop{0%{transform:scale(2.4)}100%{transform:scale(1)}}
+  .meter-foot{margin:10px 0 0;font-size:.84rem;color:var(--ink-2)}
+  .ticker{margin:8px 0 0;min-height:1.4em;font-size:.84rem;color:var(--ink)}
+  .free{margin:14px 0 0;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+
+  /* how it plays */
+  .steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;counter-reset:s}
+  @media (max-width:900px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media (max-width:520px){.steps{grid-template-columns:minmax(0,1fr)}}
+  .step{border:1px solid var(--ink);padding:16px 16px 18px;background:rgba(255,255,255,.12);position:relative}
+  .step.prize{background:var(--ink);color:var(--paper)}
+  .step.prize p{color:var(--paper-2)}
+  .step .n{font-family:var(--display);font-size:.8rem;letter-spacing:.1em;opacity:.7}
+  .step h3{margin:8px 0 8px;font-family:var(--display);font-weight:700;font-size:1.15rem;line-height:1.05}
+  .step p{margin:0;font-size:.88rem;color:var(--ink-2)}
+  .step.on{outline:3px solid var(--ink);outline-offset:3px}
+  .step .tag{display:inline-block;margin-top:10px;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;border:1px solid currentColor;padding:2px 6px}
+
+  /* crowd: entrance + flashlight search */
+  @media (prefers-reduced-motion:no-preference){.face.in{animation:fadein .5s ease-out both}}
+  @keyframes fadein{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
+  .crowd-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px}
+  .crowd-wrap{position:relative}
+  .crowd-wrap.dark .crowd{-webkit-mask-image:radial-gradient(circle 120px at var(--x,50%) var(--y,50%),#000 0,#000 55%,rgba(0,0,0,.1) 100%);mask-image:radial-gradient(circle 120px at var(--x,50%) var(--y,50%),#000 0,#000 55%,rgba(0,0,0,.1) 100%)}
+  .crowd-wrap.dark{background:var(--ink)}
+
+  /* seat card preview before joining */
+  .preview{margin-top:18px}
+  .preview img{display:block;width:100%;height:auto;border:1px solid var(--line)}
+  .preview p{margin:8px 0 0;font-size:.84rem;color:var(--ink-2)}
+  @media (prefers-reduced-motion:no-preference){.seatbox.stamp h3,.seatbox.stamp img{animation:stamp .5s cubic-bezier(.2,1.4,.4,1) both}}
+  @keyframes stamp{from{transform:scale(1.25) rotate(-2deg);opacity:0}to{transform:none;opacity:1}}
+</style>
+</head>
+<body>
+<svg class="grain" aria-hidden="true" focusable="false"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#g)"/></svg>
+<div class="vignette" aria-hidden="true"></div>
+
+<div class="wrap">
+  <nav class="top" aria-label="Berlin Studios">
+    <a href="https://6gtpbxuv.srstudio.dev/">&larr; berlin.studios</a>
+    <span>For the Zcash community</span>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-grid">
+      <div>
+        <p class="kicker">Berlin Studios presents &middot; a zero-knowledge game</p>
+        <h1>THE HIDDEN<br>WITNESS</h1>
+      </div>
+      <img class="logo" src="./hidden-witness-logo.png" alt="THE HIDDEN WITNESS logo" width="600" height="600">
+    </div>
+    <p class="lede">A hunt for up to 1,000 players. Somewhere in this crowd is a witness. Find it, then prove you found it without revealing where it is. That's a zero-knowledge proof, the same math that keeps Zcash payments private.</p>
+    <div class="meter" aria-labelledby="meterCount">
+      <div class="meter-top"><b id="meterCount">&hellip; / 1,000</b><span id="meterLeft">seats taken</span></div>
+      <div class="seats" id="seats" aria-hidden="true"></div>
+      <p class="meter-foot">The doors close on Halloween, October 31, or sooner if all 1,000 seats fill. Then the puzzle begins.</p>
+      <p class="ticker" id="ticker" aria-live="polite"></p>
+    </div>
+    <div class="cta">
+      <a class="b solid" href="#joinHead">Take a seat</a>
+      <a class="b" href="#howHead">How it plays</a>
+    </div>
+    <p class="free">Free to take a seat &middot; Proofs are sealed with Zcash &middot; <span id="countdown">Not everything here is what it shows.</span></p>
+  </header>
+
+  <section aria-labelledby="howHead">
+    <h2 id="howHead">How it plays</h2>
+    <p class="sub">Four moves. You're on the first one.</p>
+    <div class="steps">
+      <div class="step on"><span class="n">01</span><h3>Take a seat</h3><p>Add your X handle. Your face joins the crowd and you get a numbered seat card.</p><span class="tag">Open now</span></div>
+      <div class="step"><span class="n">02</span><h3>The doors close</h3><p>On October 31, or at 1,000 seats if that comes first, no one else gets in. Only the crowd plays.</p><span class="tag" id="stepLeft">&hellip; seats left</span></div>
+      <div class="step"><span class="n">03</span><h3>The puzzle begins</h3><p>Clues drop on X at odd hours. Find the witness. Then prove it with a shielded Zcash payment: your answer rides inside its encrypted memo, sealed to your seat. It shows you found it, reveals nothing about where, and no one can copy it.</p><span class="tag">Watch for &#8982;</span></div>
+      <div class="step prize"><span class="n">04</span><h3>Claim the bounty</h3><p>Prove it and the blind bounty is yours to claim. What it is stays sealed until the doors close.</p><span class="tag">Sealed</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="crowdHead">
+    <h2 id="crowdHead">The crowd</h2>
+    <p class="sub">These are the players. The first faces walked through NULLIFIER. Every face after that took a seat. One of them is the witness.</p>
+    <p class="count" id="count"></p>
+    <div class="crowd-tools"><button class="b" id="lightBtn" type="button" aria-pressed="false">Search with a flashlight</button></div>
+    <div class="crowd-wrap" id="crowdWrap"><div class="crowd" id="crowd"></div></div>
+    <p class="crowd-note" id="crowdNote" aria-live="polite"></p>
+  </section>
+
+  <section aria-labelledby="joinHead">
+    <div class="join">
+      <div>
+        <h2 id="joinHead">Step into the crowd</h2>
+        <p class="sub">Add your X handle and your picture joins the crowd. You choose what the world sees. Only seated players can play when the doors close.</p>
+        <label class="f">Your X handle
+          <input type="text" id="handle" placeholder="@you" maxlength="16" autocomplete="off" spellcheck="false">
+        </label>
+        <div class="row"><button class="b" id="findBtn" type="button">Find me</button></div>
+        <p class="msg" id="findMsg" aria-live="polite"></p>
+        <div class="me" id="me"><div class="face" id="meFace"></div><p id="meName"></p></div>
+        <div class="choice" id="choice" role="group" aria-label="How you appear">
+          <button class="opt" type="button" data-s="1" aria-pressed="false"><b>Shielded</b><span>Your picture joins the crowd. Your handle stays hidden.</span></button>
+          <button class="opt" type="button" data-s="0" aria-pressed="false"><b>Visible</b><span>Your picture and your handle are both shown.</span></button>
+        </div>
+        <div class="row"><button class="b solid" id="joinBtn" type="button" disabled>Join the crowd</button></div>
+        <p class="msg" id="joinMsg" aria-live="polite"></p>
+        <div class="preview" id="preview">
+          <img id="previewImg" alt="Preview of a seat card" width="1200" height="630">
+          <p id="previewNote">Take a seat and this becomes your numbered seat card.</p>
+        </div>
+        <div class="seatbox" id="seatBox" hidden>
+          <h3 id="seatHead">Seat #000</h3>
+          <img id="seatImg" alt="Your seat card: the Snark silhouette and your seat number">
+          <div class="row"><button class="b solid" id="seatDl" type="button">Download your seat card</button><button class="b" id="seatPost" type="button">Post it on X</button></div>
+          <p class="msg" id="seatHint">Your post goes out with your seat card as the picture.</p>
+        </div>
+      </div>
+      <div class="aside">
+        <h2>Shielded or visible</h2>
+        <p>Zcash lets you choose what the chain reveals. A shielded payment is real and valid, but it doesn't say who sent it.</p>
+        <p>Here it works the same way. Shielded, your face is in the crowd, but no one can tell whose it is. Your handle is never shown or saved.</p>
+        <p>Taking a seat needs no wallet and costs nothing. Proving takes one tiny shielded payment, because that is what makes a proof private.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="proveHead" id="prove">
+    <div class="door">
+      <div>
+        <h2 id="proveHead">Prove it, shielded</h2>
+        <p class="sub">A proof here is a real Zcash payment. Seal your answer inside its encrypted memo and send it to the witness. The chain records a valid payment and nothing else: not who sent it, not what it says, not which seat it came from. No one can read your answer, so no one can copy it.</p>
+        <div id="doorShut"><p class="shut">The door is shut. It opens when a clue says so. Watch for &#8982;.</p></div>
+        <form id="doorForm" hidden autocomplete="off">
+          <p class="roundname" id="roundName"></p>
+          <label class="f">Your seat number
+            <input type="text" id="pSeat" inputmode="numeric" maxlength="4" placeholder="214">
+          </label>
+          <label class="f">Your answer
+            <input type="text" id="pAnswer" maxlength="120" spellcheck="false">
+          </label>
+          <label class="f">Your shielded address, so a prize can reach you (optional)
+            <input type="text" id="pReply" maxlength="400" spellcheck="false" placeholder="u1&hellip;">
+          </label>
+          <div class="row"><button class="b solid" id="sealBtn" type="button">Seal my proof</button></div>
+          <p class="msg" id="sealMsg" aria-live="polite"></p>
+        </form>
+        <div class="sealed" id="sealed" hidden>
+          <h3>Sealed. Now send it.</h3>
+          <div class="qr" id="qr" role="img" aria-label="QR code with the payment and your sealed memo"></div>
+          <div class="row"><a class="b solid" id="payLink" href="#">Open in my Zcash wallet</a></div>
+          <dl class="pay">
+            <dt>Send to</dt><dd><code id="payAddr"></code><button class="b" type="button" data-copy="payAddr">Copy</button></dd>
+            <dt>Amount</dt><dd><code id="payAmt"></code><button class="b" type="button" data-copy="payAmt">Copy</button></dd>
+            <dt>Memo</dt><dd><pre id="payMemo"></pre><button class="b" type="button" data-copy="payMemo">Copy</button></dd>
+          </dl>
+          <p class="note">Send it from a shielded Zcash wallet (Zashi, Zingo, Noir, Zkool and others). Scan the code or tap the button and the memo fills in. If your wallet doesn't, paste the memo exactly. Your proof lands on the board within a few minutes of the payment being mined. The first correct proof on chain wins. A wrong answer only costs that payment, so you can try again.</p>
+        </div>
+      </div>
+      <div class="aside">
+        <h2>The proof board</h2>
+        <p class="sub">What the chain says. Nothing more.</p>
+        <p class="boardstats"><b id="nSealed">0</b> sealed &middot; <b id="nProven">0</b> proven</p>
+        <ol class="board" id="board"><li class="empty">No proofs yet.</li></ol>
+        <p class="dim" id="readerNote"></p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="bountyHead">
+    <div class="bounty">
+      <h2 id="bountyHead">Blind bounty</h2>
+      <p>This is a game, and there is a prize. It stays sealed until the doors close on October 31, or sooner if all 1,000 seats are taken. Then the crowd closes, and only those inside can play: <button type="button" class="redact" id="redact" aria-label="Redacted">████████ █████</button></p>
+      <p>Things are hidden on this page. Some of them tell you what happens next.</p>
+      <p>Another Easter egg will be announced soon. Turn on notifications for <a href="https://x.com/chrisberlin" target="_blank" rel="noopener">@chrisberlin</a> so you don't miss it.</p>
+      <p class="found" id="found" hidden></p>
+    </div>
+  </section>
+
+  <footer>
+    <p>A Berlin Studios work by @chrisberlin, for the Zcash community. Inspired by the zkSNARKs team. Not affiliated with the zkSNARKs team or Electric Coin Co.</p>
+    <p>Pictures are public X profile pictures, looked up from the handle. Visible players are stored with their handle; shielded players are stored with their picture only.</p>
+  </footer>
+</div>
+
+<script>
+/* qrcode-generator 1.4.4, (c) 2009 Kazuhiko Arase, MIT license */
+var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],f={},c=function(t,r){o=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(i=4*e+17),l(0,0),l(i-7,0),l(0,i-7),s(),h(),d(t,r),e>=7&&v(t),null==a&&(a=p(e,n,u)),w(a,r)},l=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||i<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||i<=r+n||(o[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},h=function(){for(var t=8;t<i-8;t+=1)null==o[t][6]&&(o[t][6]=t%2==0);for(var r=8;r<i-8;r+=1)null==o[6][r]&&(o[6][r]=r%2==0)},s=function(){for(var t=B.getPatternPosition(e),r=0;r<t.length;r+=1)for(var n=0;n<t.length;n+=1){var i=t[r],a=t[n];if(null==o[i][a])for(var u=-2;u<=2;u+=1)for(var f=-2;f<=2;f+=1)o[i+u][a+f]=-2==u||2==u||-2==f||2==f||0==u&&0==f}},v=function(t){for(var r=B.getBCHTypeNumber(e),n=0;n<18;n+=1){var a=!t&&1==(r>>n&1);o[Math.floor(n/3)][n%3+i-8-3]=a}for(n=0;n<18;n+=1){a=!t&&1==(r>>n&1);o[n%3+i-8-3][Math.floor(n/3)]=a}},d=function(t,r){for(var e=n<<3|r,a=B.getBCHTypeInfo(e),u=0;u<15;u+=1){var f=!t&&1==(a>>u&1);u<6?o[u][8]=f:u<8?o[u+1][8]=f:o[i-15+u][8]=f}for(u=0;u<15;u+=1){f=!t&&1==(a>>u&1);u<8?o[8][i-u-1]=f:u<9?o[8][15-u-1+1]=f:o[8][15-u-1]=f}o[i-8][8]=!t},w=function(t,r){for(var e=-1,n=i-1,a=7,u=0,f=B.getMaskFunction(r),c=i-1;c>0;c-=2)for(6==c&&(c-=1);;){for(var g=0;g<2;g+=1)if(null==o[n][c-g]){var l=!1;u<t.length&&(l=1==(t[u]>>>a&1)),f(n,c-g)&&(l=!l),o[n][c-g]=l,-1==(a-=1)&&(u+=1,a=7)}if((n+=e)<0||i<=n){n-=e,e=-e;break}}},p=function(t,r,e){for(var n=A.getRSBlocks(t,r),o=b(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=k(i[u],l.getLength()-1).mod(l);for(a[u]=new Array(l.getLength()-1),g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=s>=0?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};f.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=M(t);break;case"Alphanumeric":e=x(t);break;case"Byte":e=m(t);break;case"Kanji":e=L(t);break;default:throw"mode:"+r}u.push(e),a=null},f.isDark=function(t,r){if(t<0||i<=t||r<0||i<=r)throw t+","+r;return o[t][r]},f.getModuleCount=function(){return i},f.make=function(){if(e<1){for(var t=1;t<40;t++){for(var r=A.getRSBlocks(t,n),o=b(),i=0;i<u.length;i++){var a=u[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var g=0;for(i=0;i<r.length;i++)g+=r[i].dataCount;if(o.getLengthInBits()<=8*g)break}e=t}c(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){c(!0,e);var n=B.getLostPoint(f);(0==e||t>n)&&(t=n,r=e)}return r}())},f.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<f.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<f.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=f.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},f.createSvgTag=function(t,r,e,n){var o={};"object"==typeof arguments[0]&&(t=(o=arguments[0]).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,c,g=f.getModuleCount()*t+2*r,l="";for(c="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",l+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',l+=o.scalable?"":' width="'+g+'px" height="'+g+'px"',l+=' viewBox="0 0 '+g+" "+g+'" ',l+=' preserveAspectRatio="xMinYMin meet"',l+=n.text||e.text?' role="img" aria-labelledby="'+y([n.id,e.id].join(" ").trim())+'"':"",l+=">",l+=n.text?'<title id="'+y(n.id)+'">'+y(n.text)+"</title>":"",l+=e.text?'<description id="'+y(e.id)+'">'+y(e.text)+"</description>":"",l+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',l+='<path d="',a=0;a<f.getModuleCount();a+=1)for(u=a*t+r,i=0;i<f.getModuleCount();i+=1)f.isDark(a,i)&&(l+="M"+(i*t+r)+","+u+c);return l+='" stroke="transparent" fill="black"/>',l+="</svg>"},f.createDataURL=function(t,r){t=t||2,r=void 0===r?4*t:r;var e=f.getModuleCount()*t+2*r,n=r,o=e-r;return I(e,e,(function(r,e){if(n<=r&&r<o&&n<=e&&e<o){var i=Math.floor((r-n)/t),a=Math.floor((e-n)/t);return f.isDark(a,i)?0:1}return 1}))},f.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=f.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=f.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=y(e),o+='"'),o+="/>"};var y=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return f.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*f.getModuleCount()+2*t,u=t,c=a-t,g={"██":"█","█ ":"▀"," █":"▄","  ":" "},l={"██":"▀","█ ":"▀"," █":" ","  ":" "},h="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<c&&u<=r&&r<c&&f.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<c&&u<=r+1&&r+1<c&&f.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",h+=t<1&&r+1>=c?l[i]:g[i];h+="\n"}return a%2&&t>0?h.substring(0,h.length-a-1)+Array(a+1).join("▀"):h.substring(0,h.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=f.getModuleCount()*t+2*r,u=r,c=a-r,g=Array(t+1).join("██"),l=Array(t+1).join("  "),h="",s="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),s="",n=0;n<a;n+=1)i=1,u<=n&&n<c&&u<=e&&e<c&&f.isDark(o,Math.floor((n-u)/t))&&(i=0),s+=i?g:l;for(o=0;o<t;o+=1)h+=s+"\n"}return h.substring(0,h.length-1)},f.renderTo2dContext=function(t,r){r=r||2;for(var e=f.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=f.isDark(n,o)?"black":"white",t.fillRect(n*r,o*r,r,r)},f};t.stringToBytes=(t.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,t.createStringToBytes=function(t,r){var e=function(){for(var e=S(t),n=function(){var t=e.read();if(-1==t)throw"eof";return t},o=0,i={};;){var a=e.read();if(-1==a)break;var u=n(),f=n()<<8|n();i[String.fromCharCode(a<<8|u)]=f,o+=1}if(o!=r)throw o+" != "+r;return i}(),n="?".charCodeAt(0);return function(t){for(var r=[],o=0;o<t.length;o+=1){var i=t.charCodeAt(o);if(i<128)r.push(i);else{var a=e[t.charAt(o)];"number"==typeof a?(255&a)==a?r.push(a):(r.push(a>>>8),r.push(255&a)):r.push(n)}}return r}};var r,e,n,o,i,a=1,u=2,f=4,c=8,g={L:1,M:0,Q:3,H:2},l=0,h=1,s=2,v=3,d=4,w=5,p=6,y=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],e=1335,n=7973,i=function(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r},(o={}).getBCHTypeInfo=function(t){for(var r=t<<10;i(r)-i(e)>=0;)r^=e<<i(r)-i(e);return 21522^(t<<10|r)},o.getBCHTypeNumber=function(t){for(var r=t<<12;i(r)-i(n)>=0;)r^=n<<i(r)-i(n);return t<<12|r},o.getPatternPosition=function(t){return r[t-1]},o.getMaskFunction=function(t){switch(t){case l:return function(t,r){return(t+r)%2==0};case h:return function(t,r){return t%2==0};case s:return function(t,r){return r%3==0};case v:return function(t,r){return(t+r)%3==0};case d:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case w:return function(t,r){return t*r%2+t*r%3==0};case p:return function(t,r){return(t*r%2+t*r%3)%2==0};case y:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},o.getErrorCorrectPolynomial=function(t){for(var r=k([1],0),e=0;e<t;e+=1)r=r.multiply(k([1,C.gexp(e)],0));return r},o.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case f:case c:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case f:return 16;case c:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case f:return 16;case c:return 12;default:throw"mode:"+t}}},o.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);i>5&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},o),C=function(){for(var t=new Array(256),r=new Array(256),e=0;e<8;e+=1)t[e]=1<<e;for(e=8;e<256;e+=1)t[e]=t[e-4]^t[e-5]^t[e-6]^t[e-8];for(e=0;e<255;e+=1)r[t[e]]=e;var n={glog:function(t){if(t<1)throw"glog("+t+")";return r[t]},gexp:function(r){for(;r<0;)r+=255;for(;r>=256;)r-=255;return t[r]}};return n}();function k(t,r){if(void 0===t.length)throw t.length+"/"+r;var e=function(){for(var e=0;e<t.length&&0==t[e];)e+=1;for(var n=new Array(t.length-e+r),o=0;o<t.length-e;o+=1)n[o]=t[o+e];return n}(),n={getAt:function(t){return e[t]},getLength:function(){return e.length},multiply:function(t){for(var r=new Array(n.getLength()+t.getLength()-1),e=0;e<n.getLength();e+=1)for(var o=0;o<t.getLength();o+=1)r[e+o]^=C.gexp(C.glog(n.getAt(e))+C.glog(t.getAt(o)));return k(r,0)},mod:function(t){if(n.getLength()-t.getLength()<0)return n;for(var r=C.glog(n.getAt(0))-C.glog(t.getAt(0)),e=new Array(n.getLength()),o=0;o<n.getLength();o+=1)e[o]=n.getAt(o);for(o=0;o<t.getLength();o+=1)e[o]^=C.gexp(C.glog(t.getAt(o))+r);return k(e,0).mod(t)}};return n}var A=function(){var t=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],r=function(t,r){var e={};return e.totalCount=t,e.dataCount=r,e},e={};return e.getRSBlocks=function(e,n){var o=function(r,e){switch(e){case g.L:return t[4*(r-1)+0];case g.M:return t[4*(r-1)+1];case g.Q:return t[4*(r-1)+2];case g.H:return t[4*(r-1)+3];default:return}}(e,n);if(void 0===o)throw"bad rs block @ typeNumber:"+e+"/errorCorrectionLevel:"+n;for(var i=o.length/3,a=[],u=0;u<i;u+=1)for(var f=o[3*u+0],c=o[3*u+1],l=o[3*u+2],h=0;h<f;h+=1)a.push(r(c,l));return a},e}(),b=function(){var t=[],r=0,e={getBuffer:function(){return t},getAt:function(r){var e=Math.floor(r/8);return 1==(t[e]>>>7-r%8&1)},put:function(t,r){for(var n=0;n<r;n+=1)e.putBit(1==(t>>>r-n-1&1))},getLengthInBits:function(){return r},putBit:function(e){var n=Math.floor(r/8);t.length<=n&&t.push(0),e&&(t[n]|=128>>>r%8),r+=1}};return e},M=function(t){var r=a,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+2<r.length;)t.put(o(r.substring(n,n+3)),10),n+=3;n<r.length&&(r.length-n==1?t.put(o(r.substring(n,n+1)),4):r.length-n==2&&t.put(o(r.substring(n,n+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return n},x=function(t){var r=u,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+1<r.length;)t.put(45*o(r.charAt(n))+o(r.charAt(n+1)),11),n+=2;n<r.length&&t.put(o(r.charAt(n)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return n},m=function(r){var e=f,n=t.stringToBytes(r),o={getMode:function(){return e},getLength:function(t){return n.length},write:function(t){for(var r=0;r<n.length;r+=1)t.put(n[r],8)}};return o},L=function(r){var e=c,n=t.stringToBytesFuncs.SJIS;if(!n)throw"sjis not supported.";!function(t,r){var e=n("友");if(2!=e.length||38726!=(e[0]<<8|e[1]))throw"sjis not supported."}();var o=n(r),i={getMode:function(){return e},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return i},D=function(){var t=[],r={writeByte:function(r){t.push(255&r)},writeShort:function(t){r.writeByte(t),r.writeByte(t>>>8)},writeBytes:function(t,e,n){e=e||0,n=n||t.length;for(var o=0;o<n;o+=1)r.writeByte(t[o+e])},writeString:function(t){for(var e=0;e<t.length;e+=1)r.writeByte(t.charCodeAt(e))},toByteArray:function(){return t},toString:function(){var r="";r+="[";for(var e=0;e<t.length;e+=1)e>0&&(r+=","),r+=t[e];return r+="]"}};return r},S=function(t){var r=t,e=0,n=0,o=0,i={read:function(){for(;o<8;){if(e>=r.length){if(0==o)return-1;throw"unexpected end of file./"+o}var t=r.charAt(e);if(e+=1,"="==t)return o=0,-1;t.match(/^\s$/)||(n=n<<6|a(t.charCodeAt(0)),o+=6)}var i=n>>>o-8&255;return o-=8,i}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return i},I=function(t,r,e){for(var n=function(t,r){var e=t,n=r,o=new Array(t*r),i={setPixel:function(t,r,n){o[r*e+t]=n},write:function(t){t.writeString("GIF87a"),t.writeShort(e),t.writeShort(n),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(e),t.writeShort(n),t.writeByte(0);var r=a(2);t.writeByte(2);for(var o=0;r.length-o>255;)t.writeByte(255),t.writeBytes(r,o,255),o+=255;t.writeByte(r.length-o),t.writeBytes(r,o,r.length-o),t.writeByte(0),t.writeString(";")}},a=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,i=u(),a=0;a<r;a+=1)i.add(String.fromCharCode(a));i.add(String.fromCharCode(r)),i.add(String.fromCharCode(e));var f,c,g,l=D(),h=(f=l,c=0,g=0,{write:function(t,r){if(t>>>r!=0)throw"length over";for(;c+r>=8;)f.writeByte(255&(t<<c|g)),r-=8-c,t>>>=8-c,g=0,c=0;g|=t<<c,c+=r},flush:function(){c>0&&f.writeByte(g)}});h.write(r,n);var s=0,v=String.fromCharCode(o[s]);for(s+=1;s<o.length;){var d=String.fromCharCode(o[s]);s+=1,i.contains(v+d)?v+=d:(h.write(i.indexOf(v),n),i.size()<4095&&(i.size()==1<<n&&(n+=1),i.add(v+d)),v=d)}return h.write(i.indexOf(v),n),h.write(e,n),h.flush(),l.toByteArray()},u=function(){var t={},r=0,e={add:function(n){if(e.contains(n))throw"dup key:"+n;t[n]=r,r+=1},size:function(){return r},indexOf:function(r){return t[r]},contains:function(r){return void 0!==t[r]}};return e};return i}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=D();n.write(a);for(var u=function(){var t=0,r=0,e=0,n="",o={},i=function(t){n+=String.fromCharCode(a(63&t))},a=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return o.writeByte=function(n){for(t=t<<8|255&n,r+=8,e+=1;r>=6;)i(t>>>r-6),r-=6},o.flush=function(){if(r>0&&(i(t<<6-r),t=0,r=0),e%3!=0)for(var o=3-e%3,a=0;a<o;a+=1)n+="="},o.toString=function(){return n},o}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return t}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||n>=57344?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}((function(){return qrcode}));
+</script>
+<script>
+(function () {
+  // Snark silhouette, traced from the original pixel art (# = filled cell).
+  var SNARK = [
+    "...##..##########....",
+    ".....#############...",
+    ".##.##############...",
+    "...################..",
+    "......#############..",
+    ".#.################..",
+    "....################.",
+    "......##############.",
+    "..#..###############.",
+    "...#################.",
+    "##....#############..",
+    ".......############..",
+    "....##############...",
+    ".......###########...",
+    "..##..###########....",
+    "....##############...",
+    ".....##############..",
+    ".##################..",
+    "...#################.",
+    "..##################."
+  ];
+
+  // Official Zcash logo mark (from z.cash/press), drawn as a vector path on a 40.068 unit square.
+  var ZEC_PATH = "M0,20.034A20.034,20.034,0,1,1,20.034,40.068,20.055,20.055,0,0,1,0,20.034m27.18-9.3v3.048L18.7,25.285H27.18v4.044H21.714v3.35H18.354v-3.35H12.887V26.282l8.47-11.5h-8.47V10.736h5.466V7.375h3.361v3.361Z";
+  var CARD_GRAY = "#9a9a9a";
+
+  // 5x7 pixel font.
+  var FONT = {
+    "0": ["01110","10001","10011","10101","11001","10001","01110"],
+    "1": ["00100","01100","00100","00100","00100","00100","01110"],
+    "2": ["01110","10001","00001","00010","00100","01000","11111"],
+    "3": ["11110","00001","00001","01110","00001","00001","11110"],
+    "4": ["00010","00110","01010","10010","11111","00010","00010"],
+    "5": ["11111","10000","11110","00001","00001","10001","01110"],
+    "6": ["00110","01000","10000","11110","10001","10001","01110"],
+    "7": ["11111","00001","00010","00100","01000","01000","01000"],
+    "8": ["01110","10001","10001","01110","10001","10001","01110"],
+    "9": ["01110","10001","10001","01111","00001","00010","01100"],
+    "#": ["01010","01010","11111","01010","11111","01010","01010"],
+    ",": ["00000","00000","00000","00000","00110","00100","01000"],
+    ".": ["00000","00000","00000","00000","00000","01100","01100"],
+    "/": ["00001","00010","00010","00100","01000","01000","10000"],
+    "?": ["01110","10001","00001","00010","00100","00000","00100"],
+    "'": ["00100","00100","01000","00000","00000","00000","00000"],
+    " ": ["00000","00000","00000","00000","00000","00000","00000"],
+    "@": ["01110","10001","10111","10101","10111","10000","01111"],
+    ":": ["00000","01100","01100","00000","01100","01100","00000"],
+    "A": ["01110","10001","10001","11111","10001","10001","10001"],
+    "B": ["11110","10001","10001","11110","10001","10001","11110"],
+    "C": ["01110","10001","10000","10000","10000","10001","01110"],
+    "D": ["11110","10001","10001","10001","10001","10001","11110"],
+    "E": ["11111","10000","10000","11110","10000","10000","11111"],
+    "F": ["11111","10000","10000","11110","10000","10000","10000"],
+    "G": ["01110","10001","10000","10111","10001","10001","01111"],
+    "H": ["10001","10001","10001","11111","10001","10001","10001"],
+    "I": ["01110","00100","00100","00100","00100","00100","01110"],
+    "J": ["00111","00010","00010","00010","00010","10010","01100"],
+    "K": ["10001","10010","10100","11000","10100","10010","10001"],
+    "L": ["10000","10000","10000","10000","10000","10000","11111"],
+    "M": ["10001","11011","10101","10101","10001","10001","10001"],
+    "N": ["10001","11001","10101","10011","10001","10001","10001"],
+    "O": ["01110","10001","10001","10001","10001","10001","01110"],
+    "P": ["11110","10001","10001","11110","10000","10000","10000"],
+    "Q": ["01110","10001","10001","10001","10101","10010","01101"],
+    "R": ["11110","10001","10001","11110","10100","10010","10001"],
+    "S": ["01111","10000","10000","01110","00001","00001","11110"],
+    "T": ["11111","00100","00100","00100","00100","00100","00100"],
+    "U": ["10001","10001","10001","10001","10001","10001","01110"],
+    "V": ["10001","10001","10001","10001","10001","01010","00100"],
+    "W": ["10001","10001","10001","10101","10101","10101","01010"],
+    "X": ["10001","10001","01010","00100","01010","10001","10001"],
+    "Y": ["10001","10001","01010","00100","00100","00100","00100"],
+    "Z": ["11111","00001","00010","00100","01000","10000","11111"]
+  };
+
+  function text(ctx, str, x, y, px) {
+    for (var i = 0; i < str.length; i++) {
+      var g = FONT[str[i]] || FONT[" "];
+      for (var r = 0; r < 7; r++)
+        for (var c = 0; c < 5; c++)
+          if (g[r][c] === "1") ctx.fillRect(x + c * px, y + r * px, px, px);
+      x += 6 * px;
+    }
+    return x;
+  }
+
+  function zecMark(ctx, x, y, size) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(size / 40.068, size / 40.068);
+    ctx.fillStyle = CARD_GRAY;
+    ctx.fill(new Path2D(ZEC_PATH), "evenodd");
+    ctx.restore();
+  }
+
+  function base() {
+    var cv = document.createElement("canvas");
+    cv.width = 1200; cv.height = 630;
+    var ctx = cv.getContext("2d");
+    ctx.fillStyle = "#000"; ctx.fillRect(0, 0, 1200, 630);
+    // Silhouette: white cells grown by the outline width, then black cells on top.
+    var cell = 21, ol = 7, cols = SNARK[0].length;
+    var sx = 110, sy = Math.round((630 - SNARK.length * cell) / 2);
+    ctx.fillStyle = "#fff";
+    SNARK.forEach(function (row, r) { for (var c = 0; c < cols; c++) if (row[c] === "#")
+      ctx.fillRect(sx + c * cell - ol, sy + r * cell - ol, cell + ol * 2, cell + ol * 2); });
+    ctx.fillStyle = "#000";
+    SNARK.forEach(function (row, r) { for (var c = 0; c < cols; c++) if (row[c] === "#")
+      ctx.fillRect(sx + c * cell, sy + r * cell, cell, cell); });
+    return { cv: cv, ctx: ctx };
+  }
+
+  // Zcash lockup: official mark + ZCASH in the pixel face, both in gray.
+  function zecLockup(ctx, x, y) {
+    zecMark(ctx, x, y, 56);
+    ctx.fillStyle = CARD_GRAY;
+    text(ctx, "ZCASH", x + 74, y, 8);
+  }
+
+  // Bottom strip: points people to the pinned post (X posts carry no link).
+  // Chris Berlin's skull mark, drawn in black on the gray strip.
+  var CB_MARK = new Image();
+  CB_MARK.onload = function () { try { window.dispatchEvent(new Event("cbmark")); } catch (e) {} };
+  CB_MARK.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAewAAAIDCAYAAADG0C2qAAAJG0lEQVR42u3cQW7kIBBAUTPi/leuWYwUZRFrmshginpvHSUdjPnNptoFwFPiw59rPiuj/lgCgKUB9H8h2AAg2ACAYAMAgg0Agg0ACDYACLYlAADBBgAEGwBq6JbgizF9QCUjZ5nz0Q07XawBcJYKNgAg2AAg2ACAYAOAYAMAgg0ACDYACDYAINgAwCeMJgVYb2QimHGfuGEDgGADAIINAIINAAg2ACDYACDYAIBgAwCCDQCCDQBMcvrIu7BmQOLzJuPZFMk+rxs2AKW+MJz+eQUbABBsABBsAECwAQDBBgDBBgAEGwAEGwAQbABgVLcEACRQfuSpGzYAFcMu2ACAYAOAYAMAgg0ACDYACDYAINgAgGADgGADALMZTTpuZIpOs1xQ6p0HN2wAsUawAQDBBgAEGwAEGwAQbABAsAFAsAEAwQYABBsAEpk5mtQIT4B6nOdu2AAg2ACAYAMAgg0Agg0ACDYAINgAINgAgGADAIK9QlgCAJ7QLcE20TbOD3yRxhnphg0Agg0ACDYACDYAINgAgGADgGADAIINAAg2AAg2zzN9CYBbGUeTnhw2Y0zBueC5OffcsAFAsAEAwQYAwQYABBsAEGwAEGwAQLABAMEGAMHmPaY6ARSTcTTpyHg6Y0yN8wPOOM/dsC0BAAg2ACDYACDYAIBgAwCCDQCCDQAINgAg2AAg2OzGGFOAA3RLINrfGBPoyxPghg0ACDYACDYAINgAgGADgGADAIINAAg2AAg2ACDYPM8kLoBNtcFDeofRlaKyz97xZcQ4V++6dw03bABAsAFAsAEAwQYAwQYABBsAEGwAEGwAQLABAMEGgLRGR94ZY0qVvU4uYe/ihg0ACDYAINgAINgAgGADAIINAIINAAg2AAg2ACDYS5kQhH0AOMj+I9MYUyNMxZXcwj7HDRsAEGwAQLABQLABAMEGAAQbAAQbABBsABBsAKBQsE3yAVZx3mCTL/L2GFOjSe1J6ogN9m54J9jphg0ACDYACDYAINgAgGADgGADAIINAAg2AAg2AHB0sNvDPzfr7wP5NZ8BG7cGY0ztSdj1zPH+uGEDAIINAAg2AAg2ACDYAIBgA4BgAwCCDQCCDQAIdmYmCVlb8F5gIxzGGFP7DHY9c7yXbtgAgGADgGADAIINAAg2AAg2ACDYAIBgA4BgAwCCDQDldUsA6RlHmW8McNvg99o3btgAgGADgGADAIINAAg2AAg2ACDYAIBgA4BgAwCCnZnpQNZgtrAEnhsOU7zA9o5nbG09h9H1dTa4YQOAYAMAgg0ACDYACDYAINgAgGADgGADAIINAAg2rGQU5VzN3sEmZ8cXzXNzmDpLPN9dn5kxpm7YACDYAIBgAwCCDQCCDQAINgAg2AAg2ACAYAMA/3RLsBVTfyDvO2nq3dw1K38+umGLNQCCDQAINgAINgAg2ACAYAOAYAMAgg0ACDYACDYA8DyjSQFq2mEsqDGmbtgAINgAgGADAIINAIINAAg2AAg2ACDYAIBgA4BgAwCvapbgVyLZswiPDGfJ8WeIvTC+vqn2rRv2+S+aWAMcQLABQLABAMEGAMEGAAQbABBsABBsAECwAQDBBoB0uiWYzshGoJKR6YrOx4E1c8MWawASfMERbABIQLABQLABAMEGAMEGAAQbABBsABBsAECweZThLQAHMJpUtL8LS8UC8eIeJ+9eaBN+NtUYVTdsAEhAsAFAsAEAwQYAwQYABBsAEGwAEGwAQLABAMEGgHSMJgXuGPe5x9oaGTzuyDVzwwYAwQYABBsABBsAEGwAQLABQLABAMEGAASbewZlAAg2AOBGxc6MVjz/nQ9r4P1Juh9blufrhg2AL7AJCDYACDYAINgAINgAgGADAIINAIINAAg2ACDYUJXJhp4biXVLQOIDx8hTB7pn7J0o8064YQOAYAMAgg0Agg0ACDYAINgAINgAgGADAIINAIINLGXKGRRhNCliBd6JDKL6OrhhA4BgAwCCDQCCDQAINgAg2AAg2ACAYAMAgg0Agg0APM9oR2C1ePnvO/dI+T64YQNAAoINAIINAAg2AAg2ACDYAIBgA4BgAwCCDQAINgDs4uPJe91aXdf1/qjEoYcGUPDsPfmM/Oh/c8MGgAQEGwAEGwAQbAAQbABAsAEAwQYAwQYABBsAEOyf7DBBJzwGAHYOVTZhPwAsP0/Ln09u2AAg2ACAYAOAYAMAgg0ACDYACDYAINgAgGADgGAXYBoYAOJTmBF9gLMMN2wAEGwAQLABQLABAMEGAAQbAAQbABBsAECwAUCweZ6JPwDc6pZAtOEA4Z20Dm7YAIBgAwCCDQCCDQAINgAg2AAg2ACAYAOAYAMAmzHpDOBebPAZmnXADRsABBsAEGwAEGwAQLABAMEGAMEGAAQbABBsABBsAGCOZgmglE9HTLZD/y90xQ0bKBl2QLABAMEGAMEGAAQbAAQbABBsAECwAUCwAQDBBgAEGwAEGwAQbAAQbABAsAEAwQYAwQYABBsAEGwAEGwAQLABgC/dEkApbeBnY8LvBNywgZeEJQDBBgAEGwAEGwAQbAAQbABAsAEAwQYAwQYABBsAEGwAEGwAQLABQLABAMEGAAQbAAQbABBsAECwAUCwAQDBBgCu67qaJQAeEJPOnLC0uoIbNrBv2MUaBBsABBsAEGwAEGwAQLABAMEGAMEGAAQbABBsAMiuWwJgsVljTJ/827/VXv4cGdcMN2yAJUFb8btPXTMEGwAEGwAQbABAsAFAsAEAwQYAwQYABBsAEGwAOJnRpMBqLdHfj4M/A27YAIBgA4BgAwCCDQAINgAINgAg2ACAYAOAYAMAgg0Agm0JAECwAQDBBgDBBgAEGwAQbAAQbABAsAEAwQYAwQYABBsABBsAEGwAQLABQLABAMEGAAQbAAQbABBsAECwAUCwAQDBBoAiuiUAHtAGfjYm/E7G1nbm88UNGwAEGwAQbABAsAFAsAEAwQYABBsABBsAEGwAQLABIA2jSYFqItnvncW4UTdsAECwAUCwAQDBBgAEGwAEGwAQbABAsAFAsAEAwQaA8oymA04wayyoMxI3bABAsAFAsAEAwQYABBsABBsAEGwAEGwAQLABAMEGgIP9BSDShDTddXn7AAAAAElFTkSuQmCC";
+  function pinStrip(ctx) {
+    ctx.fillStyle = CARD_GRAY; ctx.fillRect(0, 572, 1200, 58);
+    ctx.fillStyle = "#000";
+    var msg = "TAKE A SEAT: SEE @CHRISBERLIN'S PINNED POST", px = 4;
+    var tw = (msg.length * 6 - 1) * px, mh = 46, mw = Math.round(mh * 492 / 515), gap = 16;
+    var hasMark = CB_MARK.complete && CB_MARK.naturalWidth > 0;
+    var x = Math.round((1200 - tw - (hasMark ? mw + gap : 0)) / 2);
+    if (hasMark){ ctx.imageSmoothingEnabled = false; ctx.drawImage(CB_MARK, x, 578, mw, mh); x += mw + gap; }
+    text(ctx, msg, x, 587, px);
+  }
+
+  function pad(seat) { var n = String(Math.floor(seat)); return n.length < 3 ? ("000" + n).slice(-3) : n; }
+
+  function drawSeat(seat) {
+    var b = base(), ctx = b.ctx, tx = 640;
+    ctx.fillStyle = "#fff";
+    text(ctx, "SEAT", tx, 128, 6);
+    text(ctx, "#" + pad(Math.max(1, Math.min(1000, seat))), tx, 180, 17);
+    text(ctx, "OF 1,000", tx, 312, 6);
+    text(ctx, "THE HIDDEN WITNESS", tx, 384, 4);
+    zecLockup(ctx, tx, 430);
+    ctx.fillStyle = "#8a8a8a";
+    text(ctx, "PRIVATE BY DEFAULT", tx, 512, 3);
+    pinStrip(ctx);
+    return b.cv;
+  }
+
+  // Invitation card: no seat number, a cryptic line instead.
+  function drawInvite() {
+    var b = base(), ctx = b.ctx, tx = 640;
+    ctx.fillStyle = "#fff";
+    text(ctx, "ONE OF US", tx, 100, 8);
+    text(ctx, "IS THE", tx, 170, 8);
+    text(ctx, "WITNESS.", tx, 240, 8);
+    ctx.fillStyle = "#8a8a8a";
+    text(ctx, "PROVE IT. REVEAL NOTHING.", tx, 326, 3);
+    ctx.fillStyle = "#fff";
+    text(ctx, "THE HIDDEN WITNESS", tx, 384, 4);
+    zecLockup(ctx, tx, 430);
+    ctx.fillStyle = "#8a8a8a";
+    text(ctx, "1,000 SEATS. STEP IN.", tx, 512, 3);
+    pinStrip(ctx);
+    return b.cv;
+  }
+
+  window.seatCardDataURL = function (seat) { return drawSeat(seat).toDataURL("image/png"); };
+  window.inviteCardDataURL = function () { return drawInvite().toDataURL("image/png"); };
+  window.seatCardBlob = function (seat) { return new Promise(function (ok) { drawSeat(seat).toBlob(ok, "image/png"); }); };
+  window.downloadSeatCard = function (seat) {
+    var a = document.createElement("a");
+    a.href = window.seatCardDataURL(seat);
+    a.download = "hidden-witness-seat-" + pad(seat) + ".png";
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+})();
+</script>
+<script>
+(function(){
+  "use strict";
+  /* =========================================================
+     CONFIG
+     ========================================================= */
+  const CLOSE_AT = Date.parse("2026-11-01T00:00:00-07:00"); // doors close at the end of Halloween, Pacific
+  const CONFIG = {
+    openAt: "",               // ISO time the portal opens, e.g. "2026-09-30T19:00:00-07:00". Empty = "Look around."
+    SUPABASE_URL: "https://mrcbwfenysqmpvbxwemo.supabase.co",
+    SUPABASE_ANON_KEY: "sb_publishable_feh_JcKfIJy1OAwr6mBtoA_hMOBMX8W",
+    TABLE: "witnesses",
+    hidden: [],               // handles to hide from the crowd (moderation)
+    // Easter egg 1: click the redaction bar 3 times to reveal this line.
+    nextAnnouncement: "Clues won't be announced. They arrive at odd hours, carrying a single mark: \u2316. Miss one, and it won't be repeated. Watch closely.",     // e.g. "The next announcement: Sep 30, 7 PM PT." Empty = the bar stays shut.
+    // Easter egg 2: one face in the crowd is a door. Clicking it opens this page.
+    doorUrl: "https://6gtpbxuv.srstudio.dev/"
+  };
+  // The proof door: a shielded payment to the witness, with the answer sealed in its encrypted memo.
+  const PROOF = {
+    address: "u15jcdy8qkjkm9rv6tclz8s8smft7ygle9s8c36yy6350q37gd2nrwdv8zuz3dta4526hmsdas3swk7d34w75z6kpu9gsgrnzsmud9wkzs",
+    amount: "0.001",
+    explorer: "https://explorer.zec.rocks/transactions/"
+  };
+  // The first faces: everyone who left a handle on NULLIFIER.
+  const SEED = [{"h":"A2E_A2E","a":"https://pbs.twimg.com/profile_images/2098407602841661440/1NvEiiDC_200x200.png"},{"h":"CryptoRubber","a":"https://pbs.twimg.com/profile_images/2101461395065958401/5Gm1cxsu_200x200.jpg"},{"h":"Vortiqal","a":"https://pbs.twimg.com/profile_images/2103988904776888320/2vBhfPXE_200x200.jpg"},{"h":"kacchanr_","a":"https://pbs.twimg.com/profile_images/2092326407011532800/LdL1FcRO_200x200.jpg"},{"h":"bella_quack","a":"https://pbs.twimg.com/profile_images/1996986174112780289/ORyoga4M_200x200.jpg"},{"h":"0xdort","a":"https://pbs.twimg.com/profile_images/2099314158944538626/_BZUvWmP_200x200.jpg"},{"h":"3nergywhiz","a":"https://pbs.twimg.com/profile_images/2101167360874864640/B8tLdr8a_200x200.jpg"},{"h":"onetonwontonmon","a":"https://pbs.twimg.com/profile_images/2104023038312562688/fBYIWlxZ_200x200.jpg"},{"h":"VanWin408","a":"https://pbs.twimg.com/profile_images/2097414144488292352/vTcGGn6x_200x200.jpg"},{"h":"james76n","a":"https://pbs.twimg.com/profile_images/1374595602852503553/3lDDkkrB_200x200.jpg"},{"h":"velucxa","a":"https://pbs.twimg.com/profile_images/2100715441375301632/hlxEef3F_200x200.jpg"},{"h":"frankshielded","a":"https://pbs.twimg.com/profile_images/2100750407265890304/94Oq6CRO_200x200.jpg"},{"h":"LymLegendary","a":"https://pbs.twimg.com/profile_images/2101154236897918976/boSaxN1H_200x200.jpg"},{"h":"mfBRAT_eth","a":"https://pbs.twimg.com/profile_images/2022691693410308096/uzjXiDGK_200x200.jpg"},{"h":"Classicmantweet","a":"https://pbs.twimg.com/profile_images/2102428025945997312/oFqPyNoB_200x200.png"},{"h":"acdmoon","a":"https://pbs.twimg.com/profile_images/2103150097441902592/NTab_dr8_200x200.jpg"},{"h":"hqh7190","a":"https://pbs.twimg.com/profile_images/2101192030319992832/Eg98if-9_200x200.jpg"},{"h":"JayZcashmoney","a":"https://pbs.twimg.com/profile_images/2102849474246696960/WyGOBdh0_200x200.jpg"},{"h":"extropic_vc","a":"https://pbs.twimg.com/profile_images/2103075987420504064/z5F6CkiR_200x200.jpg"},{"h":"nosuke_crypto","a":"https://pbs.twimg.com/profile_images/2104484611854413824/xdiup8pF_200x200.jpg"},{"h":"JohnHDark","a":"https://pbs.twimg.com/profile_images/2101654032733372417/KkjVIpnZ_200x200.jpg"},{"h":"Cryptodonpac","a":"https://pbs.twimg.com/profile_images/2101932931887312896/gGOtQekg_200x200.jpg"},{"h":"kryptoleary","a":"https://pbs.twimg.com/profile_images/2101515065669115904/dFQP1gOJ_200x200.jpg"},{"h":"RockieRockie","a":"https://pbs.twimg.com/profile_images/2066825469744291840/Sdw-LA5N_200x200.jpg"},{"h":"tradingbubblesz","a":"https://pbs.twimg.com/profile_images/2103161484402421760/ogolKSIZ_200x200.jpg"},{"h":"PoisonZEA","a":"https://pbs.twimg.com/profile_images/2103825665904754688/ofhUO_hm_200x200.jpg"},{"h":"earthbound1210","a":"https://pbs.twimg.com/profile_images/2104362056086614016/aRv9CnhX_200x200.jpg"},{"h":"JAcksoxx_x","a":"https://pbs.twimg.com/profile_images/2101333768175042560/UT7HBqpp_200x200.jpg"},{"h":"Stephenhup8xb","a":"https://pbs.twimg.com/profile_images/2101749374149947392/JcYRr_KM_200x200.jpg"},{"h":"NAFOMO94","a":"https://pbs.twimg.com/profile_images/2100776869134036992/UWp8HXI1_200x200.jpg"},{"h":"richpinky3","a":"https://pbs.twimg.com/profile_images/2026061210396024832/wNoNqj4I_200x200.jpg"},{"h":"Coinberry","a":"https://pbs.twimg.com/profile_images/2102612365439356928/s6Xckuf8_200x200.jpg"},{"h":"quaxiquaxi","a":"https://pbs.twimg.com/profile_images/2082022720930283520/9s9UCg3u_200x200.jpg"},{"h":"panther5btc","a":"https://pbs.twimg.com/profile_images/2101862092282241024/XGtIg1oU_200x200.jpg"},{"h":"m44444nu","a":"https://pbs.twimg.com/profile_images/2034751224063352832/rO18OQbJ_200x200.jpg"},{"h":"Cozecamp","a":"https://pbs.twimg.com/profile_images/2103045617996152832/Ya38mfYe_200x200.jpg"},{"h":"giamdox","a":"https://pbs.twimg.com/profile_images/2102130917485826048/E7D1zMFt_200x200.jpg"},{"h":"OeverYon","a":"https://pbs.twimg.com/profile_images/2101226518978457600/MrP7jlzA_200x200.jpg"},{"h":"0xnickhil","a":"https://pbs.twimg.com/profile_images/2101645844978208768/Yx3WxCIe_200x200.jpg"},{"h":"mumbles_c","a":"https://pbs.twimg.com/profile_images/2103786908677726208/COaUynlE_200x200.jpg"},{"h":"Nobita_130","a":"https://pbs.twimg.com/profile_images/2100649225231233024/IhWu_p7j_200x200.jpg"},{"h":"eduardkovalenko","a":"https://pbs.twimg.com/profile_images/2102819170861674496/e5rbIWQB_200x200.jpg"},{"h":"Nah_Dud3","a":"https://pbs.twimg.com/profile_images/2104071062883618816/k1uh6ZAj_200x200.jpg"},{"h":"Karanxbt","a":"https://pbs.twimg.com/profile_images/2102454768044212224/X308qtHh_200x200.jpg"},{"h":"kimispacex","a":"https://pbs.twimg.com/profile_images/2101922701875073024/5AnladVz_200x200.jpg"},{"h":"hialdu_","a":"https://pbs.twimg.com/profile_images/2100662701144051712/5xgXC9gU_200x200.jpg"},{"h":"Jyungrighthere","a":"https://pbs.twimg.com/profile_images/2104081550401052672/14fGH6Yp_200x200.jpg"},{"h":"mint_boar","a":"https://pbs.twimg.com/profile_images/2101990378291208192/1NkRz7t9_200x200.jpg"},{"h":"zukoushitu","a":"https://pbs.twimg.com/profile_images/2103703487955750912/gnmTXpBN_200x200.jpg"},{"h":"Abol02","a":"https://pbs.twimg.com/profile_images/2102139499413131264/Nki_VhIv_200x200.jpg"},{"h":"ajcurated","a":"https://pbs.twimg.com/profile_images/2103938468887822336/abuyCOqd_200x200.jpg"},{"h":"blue","a":"https://pbs.twimg.com/profile_images/1891491438673694721/_xCEKiX__200x200.jpg"},{"h":"pnlmaxxing","a":"https://pbs.twimg.com/profile_images/2103803126302044160/SIaLQJbg_200x200.jpg"},{"h":"kaiaisol","a":"https://pbs.twimg.com/profile_images/2091121275552792576/Wn1jpp55_200x200.jpg"},{"h":"0xKDOT","a":"https://pbs.twimg.com/profile_images/2097358991667978240/NQKoo4Us_200x200.jpg"},{"h":"alenque82","a":"https://pbs.twimg.com/profile_images/2100752992635068416/Qg150Ki__200x200.jpg"},{"h":"lovechao31","a":"https://pbs.twimg.com/profile_images/2100752404740550656/o18FBbjI_200x200.jpg"},{"h":"ondrej0x","a":"https://pbs.twimg.com/profile_images/2100644970025590785/wxQEFAaQ_200x200.jpg"},{"h":"BrightAvian","a":"https://pbs.twimg.com/profile_images/2018522155625943040/sTwEwkjS_200x200.jpg"},{"h":"MrPixeleth_","a":"https://pbs.twimg.com/profile_images/2098334067821314050/danjc-mv_200x200.jpg"},{"h":"planktoshi","a":"https://pbs.twimg.com/profile_images/1967626427064365057/9K8Abqi9_200x200.jpg"},{"h":"arrowinweb3","a":"https://pbs.twimg.com/profile_images/2102313304345792512/FNTBnbH3_200x200.jpg"},{"h":"oXtaiylor","a":"https://pbs.twimg.com/profile_images/2077198159831506944/qw_KrLkS_200x200.jpg"},{"h":"kh4n92","a":"https://pbs.twimg.com/profile_images/2000232242279284746/i_NFrNQi_200x200.jpg"},{"h":"happy520_yy","a":"https://pbs.twimg.com/profile_images/2100803205445865472/hfGBsp-H_200x200.jpg"},{"h":"0xborder","a":"https://pbs.twimg.com/profile_images/2101462121024520192/uM57iJGh_200x200.jpg"},{"h":"TheClonesNFT","a":"https://pbs.twimg.com/profile_images/1559525505891721216/EKYB9fJH_200x200.jpg"},{"h":"F0llow_the_sun","a":"https://pbs.twimg.com/profile_images/2102107294137819136/ngvfJJSc_200x200.jpg"},{"h":"Yu_Ayato","a":"https://pbs.twimg.com/profile_images/2048927147730124800/qCNcZHDO_200x200.jpg"},{"h":"Mahno_txt","a":"https://pbs.twimg.com/profile_images/1938987176055693313/m7MFJlns_200x200.jpg"},{"h":"warmarc","a":"https://pbs.twimg.com/profile_images/1892969755738284032/5quP_pD3_200x200.jpg"},{"h":"thebcc_","a":"https://pbs.twimg.com/profile_images/2000896384766238726/NcpGd3hr_200x200.jpg"},{"h":"Dapp_Boy","a":"https://pbs.twimg.com/profile_images/2103662644695646208/CazblSvn_200x200.jpg"},{"h":"MetageistVR","a":"https://pbs.twimg.com/profile_images/2008466027378601984/3liuq1Zd_200x200.jpg"},{"h":"bv99z","a":"https://pbs.twimg.com/profile_images/2100643710744608770/Db8skSc9_200x200.jpg"},{"h":"stenz0rdj","a":"https://pbs.twimg.com/profile_images/2102447928950554626/kbtfuQgu_200x200.jpg"},{"h":"cyclefail","a":"https://pbs.twimg.com/profile_images/2100652208895221760/MsyV6wtv_200x200.jpg"},{"h":"FullPlateFamily","a":"https://pbs.twimg.com/profile_images/2103258844587606017/4_FS5rFd_200x200.jpg"}];
+
+  const $ = id => document.getElementById(id);
+  const H = () => ({ apikey: CONFIG.SUPABASE_ANON_KEY });
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const okAvatar = u => /^https:\/\/pbs\.twimg\.com\/profile_images\//.test(u || "");
+
+  function face(p, extra){
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "face" + (p.s ? " shielded" : "") + (extra ? " " + extra : "");
+    b.setAttribute("aria-label", p.s ? "A shielded face" : "@" + p.h);
+    const img = document.createElement("img");
+    img.src = p.a; img.alt = ""; img.loading = "lazy"; img.referrerPolicy = "no-referrer";
+    img.onerror = () => { b.remove(); };
+    b.appendChild(img);
+    b.addEventListener("click", () => {
+      if (b.dataset.door && CONFIG.doorUrl){ window.open(CONFIG.doorUrl, "_blank", "noopener"); return; }
+      $("crowdNote").textContent = (p.s ? "Shielded. " : "@" + p.h + ". ") + "Is it the witness? You can't prove anything yet. The hunt starts when the doors close.";
+    });
+    return b;
+  }
+
+  let people = [], doorFace = null, seatsTaken = null, firstRender = true;
+  function render(highlight){
+    const crowd = $("crowd"); crowd.textContent = "";
+    people.forEach((p, i) => { const el = face(p, (highlight && p === highlight ? "new " : "") + (firstRender ? "in" : "")); if (firstRender) el.style.animationDelay = Math.min(i * 18, 1400) + "ms"; crowd.appendChild(el); });
+    firstRender = false;
+    if (CONFIG.doorUrl && !doorFace){ doorFace = people[Math.floor(Math.random() * Math.min(people.length, 40))]; }
+    [...crowd.children].forEach((el, i) => { if (people[i] === doorFace) el.dataset.door = "1"; });
+    $("count").textContent = seatsTaken != null ? Math.min(seatsTaken, 1000).toLocaleString("en-US") + " of 1,000 seats taken" : people.length + " in the crowd";
+  }
+
+  /* flashlight search */
+  (function(){
+    const wrap = $("crowdWrap"), btn = $("lightBtn");
+    function move(e){
+      const t = e.touches ? e.touches[0] : e, r = wrap.getBoundingClientRect();
+      wrap.style.setProperty("--x", (t.clientX - r.left) + "px");
+      wrap.style.setProperty("--y", (t.clientY - r.top) + "px");
+    }
+    wrap.addEventListener("pointermove", move);
+    wrap.addEventListener("touchmove", move, { passive: true });
+    btn.addEventListener("click", () => {
+      const on = !wrap.classList.contains("dark");
+      wrap.classList.toggle("dark", on);
+      btn.setAttribute("aria-pressed", String(on));
+      btn.textContent = on ? "Lights on" : "Search with a flashlight";
+      $("crowdNote").textContent = on ? "Sweep the crowd. This is how the hunt will feel." : "";
+    });
+  })();
+
+  /* live seat meter */
+  const seatEls = [];
+  (function(){ const g = $("seats"); for (let i = 0; i < 1000; i++){ const s = document.createElement("i"); g.appendChild(s); seatEls.push(s); } })();
+  let shownSeats = null;
+  function paintMeter(n){
+    n = Math.min(n, 1000);
+    const prev = shownSeats == null ? n : shownSeats;
+    seatEls.forEach((el, i) => {
+      el.className = i < n ? "t" + (i >= prev ? " fresh" : "") : (i === n ? "nx" : "");
+    });
+    const left = 1000 - n;
+    $("meterCount").textContent = n.toLocaleString("en-US") + " / 1,000";
+    const shut = left <= 0 || Date.now() >= CLOSE_AT;
+    $("meterLeft").textContent = shut ? "Doors closed" : left.toLocaleString("en-US") + " seats left · doors close Oct 31";
+    $("stepLeft").textContent = shut ? "Closed" : left.toLocaleString("en-US") + " seats left";
+    if (shownSeats != null && n > shownSeats){
+      const k = n - shownSeats;
+      $("ticker").textContent = (k === 1 ? "A new face just took a seat. " : k + " new faces just took seats. ") + (left > 0 ? left.toLocaleString("en-US") + " left." : "The doors are closed.");
+    }
+    shownSeats = n;
+    updatePreview();
+  }
+
+  window.addEventListener("cbmark", () => { try { const i = $("previewImg"); if (i && !(previewHandle && seatsTaken != null)) i.src = window.inviteCardDataURL(); else updatePreview(); } catch (e) {} });
+  /* seat card preview (before joining) */
+  let previewHandle = null;
+  function updatePreview(){
+    const pv = $("preview"); if (!pv || pv.hidden) return;
+    try {
+      if (previewHandle && seatsTaken != null && seatsTaken < 1000){
+        const next = seatsTaken + 1;
+        $("previewImg").src = window.seatCardDataURL(next);
+        $("previewNote").textContent = "@" + previewHandle + ", seat #" + String(next).padStart(3, "0") + " is waiting for you. Pick how you appear, then join.";
+      } else if (!$("previewImg").getAttribute("src")) {
+        $("previewImg").src = window.inviteCardDataURL();
+      }
+    } catch (e) {}
+  }
+
+  async function load(){
+    const base = SEED.filter(x => !CONFIG.hidden.includes(x.h.toLowerCase())).map(x => ({ h: x.h, a: x.a, s: false }));
+    let joined = [];
+    try {
+      const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${CONFIG.TABLE}?select=handle,shielded,avatar&order=ts.asc&limit=2000`, { headers: H() });
+      if (r.ok) joined = (await r.json()).filter(x => okAvatar(x.avatar)).map(x => ({ h: x.handle || "", a: x.avatar, s: !!x.shielded }));
+    } catch (e) {}
+    const seen = new Set(base.map(x => x.h.toLowerCase()));
+    joined = joined.filter(x => x.s || !seen.has(x.h.toLowerCase()) && !CONFIG.hidden.includes(x.h.toLowerCase()));
+    people = shuffle(base.concat(joined));
+    render();
+  }
+
+  /* easter egg 1: the redaction bar */
+  let redactClicks = 0;
+  $("redact").addEventListener("click", () => {
+    if (!CONFIG.nextAnnouncement) return;
+    if (++redactClicks >= 3){ const f = $("found"); f.textContent = CONFIG.nextAnnouncement; f.hidden = false; }
+  });
+
+  /* countdown */
+  function tick(){
+    const el = $("countdown");
+    if (!CONFIG.openAt){ el.textContent = "Not everything here is what it shows."; return; }
+    const ms = new Date(CONFIG.openAt) - Date.now();
+    if (!(ms > 0)){ el.textContent = "Opening now."; return; }
+    const h = Math.floor(ms / 3.6e6), m = Math.floor(ms % 3.6e6 / 6e4), s = Math.floor(ms % 6e4 / 1e3);
+    el.textContent = `Opens in ${h}h ${String(m).padStart(2,"0")}m ${String(s).padStart(2,"0")}s`;
+  }
+  tick(); setInterval(tick, 1000);
+
+  /* seat card */
+  const SEAT_STORE = "hidden_witness_seat_v1";
+  const padSeat = n => String(n).padStart(3, "0");
+  function showSeat(seat, isShielded){
+    const box = $("seatBox"); if (!box) return;
+    const num = padSeat(seat);
+    $("seatHead").textContent = "Seat #" + num;
+    try { $("seatImg").src = window.seatCardDataURL(seat); } catch (e) {}
+    const text = isShielded
+      ? "I'm in the crowd, seat #" + num + " of 1,000. You'll never know which face is mine \u{1F6E1}\n\nThat's Zcash: shielded payments are valid, yet reveal nothing. THE HIDDEN WITNESS teaches zero-knowledge proofs by making you do one.\n\nWant a seat? It's free. Go to the pinned post on @chrisberlin.\n\nBy @chrisberlin for the Zcash community. Inspired by @zksnarks_"
+      : "I claimed seat #" + num + " of 1,000 in THE HIDDEN WITNESS \u{1F441}\n\nThe game: prove you found something without revealing where it is. That's a zero-knowledge proof, the same math that keeps Zcash payments private.\n\nWant a seat? It's free. Go to the pinned post on @chrisberlin.\n\nBy @chrisberlin for the Zcash community. Inspired by @zksnarks_";
+    $("seatDl").onclick = () => window.downloadSeatCard(seat);
+    $("seatPost").onclick = async () => {
+      // Phones: share the card image itself, so the post goes out with the picture attached.
+      try {
+        const blob = await window.seatCardBlob(seat);
+        const file = new File([blob], "hidden-witness-seat-" + num + ".png", { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })){
+          await navigator.share({ files: [file], text });
+          return;
+        }
+      } catch (e) { if (e && e.name === "AbortError") return; }
+      // Computers: X can't receive a picture from a link, so save the card, then open the post with the text ready.
+      window.downloadSeatCard(seat);
+      $("seatHint").textContent = "Your seat card was saved to your downloads. In the X window, click the picture icon, add the card, then post.";
+      window.open("https://x.com/intent/post?text=" + encodeURIComponent(text), "_blank", "noopener");
+    };
+    box.hidden = false;
+    if ($("preview")) $("preview").hidden = true;
+    box.classList.remove("stamp"); void box.offsetWidth; box.classList.add("stamp");
+  }
+  // Seats are numbered in sign-up order from the database, one seat per person (a repeat join keeps the first seat).
+  // Seat cards started at #085 (the crowd showed 84 when they went live), so seat = 84 + your place among joins since then.
+  const SEAT_BASE = 84, SEAT_FROM = "2026-09-29T01:10:00Z";
+  async function seatFor(avatar){
+    try {
+      const u = CONFIG.SUPABASE_URL + "/rest/v1/" + CONFIG.TABLE;
+      const r = await fetch(u + "?select=avatar,ts&ts=gt." + SEAT_FROM + "&order=ts.asc&limit=5000", { headers: H() });
+      if (!r.ok) return null;
+      const order = [];
+      (await r.json()).forEach(x => { if (x.avatar && !order.includes(x.avatar)) order.push(x.avatar); });
+      const i = order.indexOf(avatar);
+      return i < 0 ? null : SEAT_BASE + i + 1;
+    } catch (e) { return null; }
+  }
+  (async () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SEAT_STORE) || "null");
+      if (!saved) return;
+      let seat = saved.seat;
+      if (saved.avatar){ const fresh = await seatFor(saved.avatar); if (fresh) seat = fresh; }
+      if (seat) showSeat(seat, !!saved.shielded);
+    } catch (e) {}
+  })();
+
+
+  /* =========================================================
+     THE PROOF DOOR
+     The page never learns whether an answer is right. It only
+     builds the memo; the chain carries it, encrypted, to the
+     witness wallet. A reader with the wallet's viewing key
+     checks it and posts the public result to the board.
+     ========================================================= */
+  const MEMO_TAG = "THE HIDDEN WITNESS";
+  let openRound = null;
+  const utf8Len = t => new TextEncoder().encode(t).length;
+  const b64url = t => { let b = ""; new TextEncoder().encode(t).forEach(c => b += String.fromCharCode(c)); return btoa(b).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
+  function buildMemo(round, seat, answer, reply){
+    const lines = [MEMO_TAG, "round: " + round, "seat: " + seat, "answer: " + answer];
+    if (reply) lines.push("reply: " + reply);
+    return lines.join("\n");
+  }
+  async function loadRounds(){
+    try {
+      const r = await fetch(CONFIG.SUPABASE_URL + "/rest/v1/witness_rounds?select=id,label,is_open&is_open=eq.true&order=opened_at.desc&limit=1", { headers: H() });
+      if (!r.ok) return;
+      const rows = await r.json();
+      openRound = rows[0] || null;
+      $("doorShut").hidden = !!openRound;
+      $("doorForm").hidden = !openRound;
+      if (openRound) $("roundName").textContent = "Open now: " + openRound.label;
+    } catch (e) {}
+  }
+  function prefillSeat(){
+    try { const saved = JSON.parse(localStorage.getItem(SEAT_STORE) || "null"); if (saved && saved.seat && !$("pSeat").value) $("pSeat").value = String(saved.seat); } catch (e) {}
+  }
+  $("sealBtn").addEventListener("click", () => {
+    const msg = $("sealMsg"); msg.classList.remove("err"); msg.textContent = "";
+    const err = t => { msg.textContent = t; msg.classList.add("err"); };
+    if (!openRound) return err("The door is shut right now.");
+    const seat = parseInt(($("pSeat").value || "").replace(/\D/g, ""), 10);
+    if (!(seat >= 1 && seat <= 1000)) return err("Add your seat number, 1 to 1,000.");
+    const answer = ($("pAnswer").value || "").replace(/\s+/g, " ").trim();
+    if (!answer) return err("Add your answer.");
+    const reply = ($("pReply").value || "").trim();
+    if (reply && !/^(u1|zs1)[0-9a-z]{20,}$/.test(reply)) return err("That doesn't look like a shielded address. It should start with u1 or zs1.");
+    const memo = buildMemo(openRound.id, seat, answer, reply);
+    if (utf8Len(memo) > 512) return err("That's too long to fit in a memo. Shorten the answer.");
+    const uri = "zcash:" + PROOF.address + "?amount=" + PROOF.amount + "&memo=" + b64url(memo);
+    $("payAddr").textContent = PROOF.address;
+    $("payAmt").textContent = PROOF.amount;
+    $("payMemo").textContent = memo;
+    $("payLink").href = uri;
+    try {
+      const q = qrcode(0, "L"); q.addData(uri, "Byte"); q.make();
+      $("qr").innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+    } catch (e) { $("qr").textContent = ""; }
+    $("sealed").hidden = false;
+    $("sealed").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+  document.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", async () => {
+    const t = $(b.dataset.copy).textContent;
+    try { await navigator.clipboard.writeText(t); b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1400); } catch (e) {}
+  }));
+
+  /* the proof board: public results only */
+  async function loadBoard(){
+    try {
+      const u = CONFIG.SUPABASE_URL + "/rest/v1/";
+      const [pr, rd] = await Promise.all([
+        fetch(u + "witness_proofs?select=txid,round_id,seat,height,ok,rank&order=height.asc&limit=2000", { headers: H() }),
+        fetch(u + "witness_reader?select=synced_height,synced_at&id=eq.1", { headers: H() })
+      ]);
+      if (pr.ok){
+        const rows = await pr.json();
+        const proven = rows.filter(x => x.ok);
+        $("nSealed").textContent = rows.length.toLocaleString("en-US");
+        $("nProven").textContent = proven.length.toLocaleString("en-US");
+        const ol = $("board"); ol.textContent = "";
+        if (!proven.length){ const li = document.createElement("li"); li.className = "empty"; li.textContent = rows.length ? "Sealed proofs have arrived. None proven yet." : "No proofs yet."; ol.appendChild(li); }
+        proven.forEach(x => {
+          const li = document.createElement("li");
+          const b = document.createElement("b"); b.textContent = (x.rank ? "#" + x.rank + " " : "") + (x.seat ? "Seat #" + String(x.seat).padStart(3, "0") : "A sealed seat");
+          const s = document.createElement("span"); s.textContent = "proven at block " + Number(x.height).toLocaleString("en-US");
+          const a = document.createElement("a"); a.href = PROOF.explorer + x.txid; a.target = "_blank"; a.rel = "noopener"; a.textContent = "tx " + x.txid.slice(0, 10) + "…";
+          li.append(b, s, a); ol.appendChild(li);
+        });
+      }
+      if (rd.ok){
+        const r = (await rd.json())[0];
+        if (r && r.synced_at){
+          const mins = Math.max(0, Math.round((Date.now() - Date.parse(r.synced_at)) / 60000));
+          $("readerNote").textContent = "The witness last read the chain at block " + Number(r.synced_height).toLocaleString("en-US") + ", " + (mins < 1 ? "just now" : mins + (mins === 1 ? " minute" : " minutes") + " ago") + ". Every proof links to its transaction: anyone can check it exists, no one can read it.";
+        }
+      }
+    } catch (e) {}
+  }
+  loadRounds(); loadBoard(); prefillSeat();
+  setInterval(() => { if (!document.hidden){ loadRounds(); loadBoard(); } }, 30000);
+
+  /* join */
+  let found = null, shielded = null;
+  const STORE = "hidden_witness_joined_v1";
+  const already = (() => { try { return localStorage.getItem(STORE); } catch (e) { return null; } })();
+  if (already){ $("joinMsg").textContent = "You're already in the crowd from this browser."; }
+
+  function setJoinable(){ $("joinBtn").disabled = !(found && shielded !== null) || !!already || crowdFull(); }
+  const SEAT_CAP = 1000;
+  const crowdFull = () => (seatsTaken != null && seatsTaken >= SEAT_CAP) || Date.now() >= CLOSE_AT;
+  const fullMsg = () => Date.now() >= CLOSE_AT ? "The doors closed on Halloween. Only the crowd plays now." : "The crowd is full. All 1,000 seats are taken.";
+  async function refreshSeats(){
+    try {
+      const r = await fetch(CONFIG.SUPABASE_URL + "/rest/v1/" + CONFIG.TABLE + "?select=avatar&ts=gt." + SEAT_FROM + "&order=ts.asc&limit=5000", { headers: H() });
+      if (!r.ok) return;
+      seatsTaken = SEAT_BASE + new Set((await r.json()).map(x => x.avatar).filter(Boolean)).size;
+      $("count").textContent = Math.min(seatsTaken, SEAT_CAP).toLocaleString("en-US") + " of 1,000 seats taken";
+      paintMeter(seatsTaken);
+      if (crowdFull()){ const m = $("joinMsg"); if (!already) m.textContent = fullMsg(); }
+      setJoinable();
+    } catch (e) {}
+  }
+  refreshSeats();
+  updatePreview();
+  setInterval(() => { if (!document.hidden) refreshSeats(); }, 20000);
+
+  $("findBtn").addEventListener("click", async () => {
+    const h = ($("handle").value || "").trim().replace(/^@/, "");
+    const msg = $("findMsg"); msg.classList.remove("err");
+    found = null; $("me").classList.remove("on"); $("choice").classList.remove("on"); setJoinable();
+    if (!/^[A-Za-z0-9_]{1,15}$/.test(h)){ msg.textContent = "That doesn't look like an X handle."; msg.classList.add("err"); return; }
+    msg.textContent = "Looking you up…";
+    try {
+      const r = await fetch(`https://api.fxtwitter.com/${encodeURIComponent(h)}`);
+      const d = await r.json();
+      const u = d && d.user;
+      if (!u || !u.avatar_url){ msg.textContent = "Couldn't find that account, or it has no picture."; msg.classList.add("err"); return; }
+      found = { h: u.screen_name || h, a: u.avatar_url.replace("_normal.", "_200x200.") };
+      if (!okAvatar(found.a)){ found = null; msg.textContent = "Couldn't read that picture."; msg.classList.add("err"); return; }
+      msg.textContent = "";
+      const f = $("meFace"); f.textContent = ""; const img = document.createElement("img"); img.src = found.a; img.alt = ""; img.referrerPolicy = "no-referrer"; f.appendChild(img);
+      $("meName").textContent = "@" + found.h + ". How do you want to appear?";
+      $("me").classList.add("on"); $("choice").classList.add("on"); setJoinable();
+      previewHandle = found.h; updatePreview();
+    } catch (e) { msg.textContent = "Couldn't reach X just now. Try again in a moment."; msg.classList.add("err"); }
+  });
+  $("handle").addEventListener("keydown", e => { if (e.key === "Enter") $("findBtn").click(); });
+
+  document.querySelectorAll(".opt").forEach(b => b.addEventListener("click", () => {
+    shielded = b.dataset.s === "1";
+    document.querySelectorAll(".opt").forEach(o => o.setAttribute("aria-pressed", String(o === b)));
+    $("meFace").classList.toggle("shielded", shielded);
+    setJoinable();
+  }));
+
+  $("joinBtn").addEventListener("click", async () => {
+    const msg = $("joinMsg"); msg.classList.remove("err");
+    if (!found || shielded === null) return;
+    $("joinBtn").disabled = true; msg.textContent = "Joining…";
+    await refreshSeats();
+    if (crowdFull()){ msg.textContent = fullMsg(); return; }
+    const row = { handle: shielded ? null : found.h, shielded, avatar: found.a };
+    try {
+      const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${CONFIG.TABLE}`, { method: "POST", headers: { ...H(), "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify(row) });
+      if (!r.ok){
+        let b = {}; try { b = await r.json(); } catch (e) {}
+        if (b.code === "23505"){ msg.textContent = "That handle is already in the crowd."; msg.classList.add("err"); return; }
+        if (b.message === "The crowd is full"){ msg.textContent = "The crowd is full. All 1,000 seats are taken."; msg.classList.add("err"); refreshSeats(); return; }
+        throw new Error(r.status);
+      }
+      try { localStorage.setItem(STORE, "1"); } catch (e) {}
+      const p = { h: row.handle || "", a: row.avatar, s: shielded };
+      people.unshift(p); render(p);
+      const seat = (await seatFor(row.avatar)) || people.length;
+      refreshSeats();
+      if (seat > SEAT_CAP){ msg.textContent = "The crowd filled up just before you. All 1,000 seats are taken."; msg.classList.add("err"); return; }
+      if (seat){
+        try { localStorage.setItem(SEAT_STORE, JSON.stringify({ seat, shielded, avatar: row.avatar })); } catch (e) {}
+        showSeat(seat, shielded);
+      }
+      msg.textContent = shielded ? "You're in the crowd, shielded. Your handle isn't shown or saved." : "You're in the crowd.";
+      $("crowd").scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {
+      msg.textContent = "Couldn't join just now. Try again in a moment."; msg.classList.add("err");
+      $("joinBtn").disabled = false;
+    }
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
