@@ -98,8 +98,9 @@ def claims():
     db = sqlite3.connect(os.path.join(WALLET_DIR, "data.sqlite"))
     rows = db.execute(
         """
-        select txid, mined_height, memo, value, output_pool, output_index
-          from v_tx_outputs
+        select o.txid, o.mined_height, o.memo, o.value, o.output_pool, o.output_index, b.time
+          from v_tx_outputs o
+          left join blocks b on b.height = o.mined_height
          where is_sent_row = 0 and memo is not null and mined_height is not null
            and output_pool in (2, 3)          -- Sapling or Orchard: shielded only
          order by mined_height, txid, output_index
@@ -108,13 +109,13 @@ def claims():
     tip = db.execute("select max(height) from blocks").fetchone()[0]
     db.close()
     seen = {}
-    for txid, height, memo, value, pool, idx in rows:
+    for txid, height, memo, value, pool, idx, btime in rows:
         txhex = bytes(txid)[::-1].hex()  # display order, as explorers show it
         if txhex in seen:
             continue
         c = parse(memo_text(memo))
         if c and value and value > 0:
-            c.update(txid=txhex, height=height)
+            c.update(txid=txhex, height=height, time=btime)
             seen[txhex] = c
     return list(seen.values()), tip
 
@@ -138,11 +139,21 @@ def main():
     found, tip = claims()
     answers = {k.lower(): norm(v) for k, v in json.loads(os.environ.get("HW_ANSWERS", "{}")).items()}
 
+    # Some sync modes don't keep every block's time; estimate from the tip (75-second blocks).
+    now = datetime.datetime.now(datetime.timezone.utc).timestamp()
+    for c in found:
+        if not c.get("time") and tip:
+            c["time"] = now - (tip - c["height"]) * 75
     rounds = {} if DRY else {r["id"]: r for r in supa("GET", "witness_rounds?select=*")}
     proofs, payouts, rank = [], [], {}
     for c in found:
         rnd = c["round"]
         r = rounds.get(rnd)
+        # A claim mined before its round opened (a test, or a leak) is ignored entirely.
+        if r and r.get("opened_at") and c.get("time"):
+            opened = datetime.datetime.fromisoformat(r["opened_at"].replace("Z", "+00:00")).timestamp()
+            if c["time"] < opened:
+                continue
         valid_round = DRY or (r is not None and (r.get("opened_at") or "") != "")
         ok = bool(valid_round and rnd in answers and answers[rnd] and norm(c["answer"]) == answers[rnd])
         pos = None
