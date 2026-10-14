@@ -9,21 +9,20 @@ Live: https://yhnybxsq.srstudio.dev/ (SuperRare Studio)
 
 ## The idea
 
-Somewhere in a crowd of up to 1,000 faces is a witness. Players take a free seat, follow clues that drop on X, find the witness, and then have to **prove they found it without revealing where it is**.
+Somewhere in a crowd of up to 1,000 faces is a witness. Players take a free seat, and then the game happens on X.
 
-That proof is a real shielded Zcash payment. The player's answer rides inside the transaction's **encrypted memo**, sealed to their seat number. The chain records a valid payment and nothing else: not who sent it, not what it says, not which seat it came from.
+**The drops.** Seven times, at odd hours and without warning, a post lands on @chrisberlin marked with ⌖. It carries a code. The code lives for 60 minutes, then the post is deleted and the drop is never repeated. To catch it, a player seals the code inside a shielded Zcash payment that is mined before the hour runs out.
+
+No riddle, nothing to compute, nothing an AI can solve in advance. The only way to win is to be there: notifications on, paying attention, acting inside the hour. The game rewards participation.
 
 ## Why the shielded transaction is worth making
 
-In a public puzzle hunt, the first person to post a correct answer gives it away to everyone behind them. Here, there is no way to win *except* with a shielded transaction:
+- **The chain is the clock.** A catch counts if the block holding the payment is timestamped inside the window (plus 5 minutes' grace for mining). No server clock, no trust in the organiser, no "I sent it in time, honest".
+- **Private.** The code, the sender, the amount and the player's address are encrypted on chain. Only the game's viewing key can read them.
+- **Your shielded address is your identity.** Each player puts their own Zcash address in the memo. That is how catches add up across drops, and it is where prizes are paid, privately, without ever learning who the player is. The public board only shows a keyed hash of it, labelled with the player's seat.
+- **Publicly countable.** Every catch on the board is a real shielded transaction. Anyone can count them; no one can read them.
 
-- **Private:** the answer is encrypted on chain. Only the game's viewing key can read it.
-- **Uncopyable:** nobody can see anyone else's answer, so nobody can copy it.
-- **Timestamped:** block order decides who proved it first. No server clock, no trust in the organiser's inbox.
-- **Publicly checkable:** every proof on the board links to its transaction. Anyone can verify it exists on chain; no one can read it.
-- **Paid back privately:** a player can add their own shielded address to the memo, so a prize reaches them without ever revealing who they are.
-
-Taking a seat is free and needs no wallet. The shielded transaction is the one move that has to be private, so it is the one move that costs anything (0.001 ZEC plus the network fee).
+Taking a seat is free and needs no wallet. Catching a drop takes one tiny shielded payment (0.001 ZEC plus the network fee), because that is the move that has to be private and timestamped.
 
 ## How it works
 
@@ -35,18 +34,15 @@ Taking a seat is free and needs no wallet. The shielded transaction is the one m
  answer, optional reply                                         decrypts memo, checks answer        txid, proven?
 ```
 
-1. **The page** (`site/index.html`) builds the memo and a [ZIP-321](https://zips.z.cash/zip-0321) payment URI with the memo base64url-encoded, shown as a QR code and an "open in wallet" link. The page never learns whether an answer is right.
+1. **The page** (`site/index.html`) builds the memo (`THE HIDDEN WITNESS | seat: 214 | code: … | reply: u1…`) and a [ZIP-321](https://zips.z.cash/zip-0321) payment URI with the memo base64url-encoded, shown as a QR code and an "open in wallet" link. The page never learns whether a code is right, or when the next drop is.
 2. **The player** sends 0.001 ZEC from any shielded wallet. The memo is encrypted to the witness address.
-3. **The reader** (`reader/read_claims.py`) runs every five minutes on GitHub Actions. It holds only the wallet's **unified full viewing key**, so it can see incoming payments but can never spend. It syncs with [`zcash-devtool`](https://github.com/zcash/zcash-devtool) (`init-fvk`, `sync`, `enhance`), reads shielded outputs only (Sapling, Orchard and Ironwood), decodes ZIP-302 text memos, and compares each answer with the round's secret answer.
-4. **Supabase** stores the public result only: round, seat, block height, txid, correct or not, and rank. The answer, amount, sender and memo never leave the reader. Reply addresses go to a table with no public access.
-5. **The proof board** on the page shows sealed and proven counts, the order of correct proofs, and when the reader last read the chain.
+3. **The reader** (`reader/read_claims.py`) runs every five minutes on GitHub Actions. It holds only the wallet's **unified full viewing key**, so it can see incoming payments but can never spend. It syncs with [`zcash-devtool`](https://github.com/zcash/zcash-devtool) (`init-fvk`, `sync`, `enhance`), reads shielded outputs only (Sapling, Orchard and Ironwood), decodes ZIP-302 text memos, matches each code to its drop, and checks the block's timestamp against that drop's window. Each player catches each drop once.
+4. **Supabase** stores the public result only: drop, seat, block height, txid, caught or not, and a keyed hash of the player. The code, amount, sender and memo never leave the reader. Reply addresses go to a table with no public access.
+5. **The board** on the page shows each drop once it has landed (never before), how many caught it, and the most-caught players by seat.
 
-## Rounds
+## Drops
 
-- **The shielded Easter egg** opens before the doors close on Halloween, so the proof door is live and used on mainnet.
-- **The hunt** opens when the doors close: October 31, or sooner if all 1,000 seats fill. It uses the same door.
-
-Rounds open and close from the `witness_rounds` table, so a new clue never needs a redeploy.
+The schedule (codes and opening times) lives only in a GitHub secret, `HW_DROPS`. Nothing public reveals a drop before it lands: the reader publishes each drop to the board only once it has opened. The door on the page opens for the whole season with one switch (`witness_rounds.id = 'drops'`).
 
 ## Repo
 
@@ -56,6 +52,7 @@ Rounds open and close from the `witness_rounds` table, so a new clue never needs
 | `reader/read_claims.py` | The view-only claim reader. |
 | `.github/workflows/reader.yml` | Runs the reader every five minutes. |
 | `supabase/proofs.sql` | Tables and access rules for rounds, proofs, payouts and the reader heartbeat. |
+| `supabase/drops.sql` | The player tag and the season switch for the drops. |
 
 ### Secrets (GitHub → Settings → Secrets and variables → Actions)
 
@@ -63,7 +60,8 @@ Rounds open and close from the `witness_rounds` table, so a new clue never needs
 |---|---|
 | `HW_UFVK` | The witness wallet's unified full viewing key (`uview1…`). View-only. |
 | `HW_BIRTHDAY` | Block height the witness wallet was created at. |
-| `HW_ANSWERS` | JSON of round answers, e.g. `{"egg": "…"}`. |
+| `HW_DROPS` | The drop schedule: `[{"id": "d1", "code": "…", "opens": "2026-10-16T03:17:00-07:00", "minutes": 60}, …]`. |
+| `HW_ANSWERS` | Optional, legacy riddle rounds. |
 | `SUPABASE_URL` | The Supabase project URL. |
 | `SUPABASE_SERVICE_KEY` | Supabase service role key, used only by the reader. |
 
@@ -73,7 +71,7 @@ Nothing secret is in this repository. The page uses only Supabase's public key, 
 
 ```
 cargo install --git https://github.com/zcash/zcash-devtool --rev 5a26ee854e634a4e88d1d79dab13f8fbb1eac6b8
-HW_UFVK=uview1… HW_BIRTHDAY=… HW_ANSWERS='{"egg":"…"}' HW_DRY_RUN=1 \
+HW_UFVK=uview1… HW_BIRTHDAY=… HW_DROPS='[…]' HW_DRY_RUN=1 \
   DEVTOOL=zcash-devtool python3 reader/read_claims.py
 ```
 
