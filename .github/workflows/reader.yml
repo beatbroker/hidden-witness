@@ -25,7 +25,7 @@ jobs:
 
       - name: Restore zcash-devtool build
         id: tool
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/bin/zcash-devtool
           key: devtool-${{ env.DEVTOOL_REV }}
@@ -38,6 +38,13 @@ jobs:
           cd /tmp/devtool && git checkout "$DEVTOOL_REV"
           cargo build --release
           mkdir -p ~/bin && cp target/release/zcash-devtool ~/bin/
+
+      - name: Save zcash-devtool build
+        if: steps.tool.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/bin/zcash-devtool
+          key: devtool-${{ env.DEVTOOL_REV }}
 
       - name: Restore view-only wallet
         uses: actions/cache/restore@v4
