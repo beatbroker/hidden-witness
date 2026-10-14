@@ -222,6 +222,14 @@ def main():
                   for d in drops if d["opens"] <= now]
     rounds = {} if DRY else {r["id"]: r for r in supa("GET", "witness_rounds?select=*")}
 
+    # Season gate: nothing counts, or even shows, from before the season opened (tests, rehearsals).
+    season = rounds.get("drops") or {}
+    season_start = ts(season["opened_at"]) if season.get("opened_at") else None
+    if not DRY and season_start is None:
+        found = []
+    elif season_start is not None:
+        found = [c for c in found if c["time"] >= season_start]
+
     proofs, payouts, caught, rank = [], [], set(), {}
     for c in found:
         code = norm(c["answer"])
