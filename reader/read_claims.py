@@ -178,7 +178,9 @@ def main():
     for c in found:
         rnd = c["round"]
         r = rounds.get(rnd)
-        # A claim mined before its round opened (a test, or a leak) is ignored entirely.
+        # A claim for a round that hasn't opened, or mined before it opened (a test, or a leak), is ignored entirely.
+        if r and not r.get("opened_at"):
+            continue
         if r and r.get("opened_at") and c.get("time"):
             opened = datetime.datetime.fromisoformat(r["opened_at"].replace("Z", "+00:00")).timestamp()
             if c["time"] < opened:
