@@ -28,6 +28,7 @@ import sqlite3
 import subprocess
 import sys
 import unicodedata
+import urllib.error
 import urllib.request
 
 DEVTOOL = os.environ.get("DEVTOOL", "zcash-devtool")
@@ -128,14 +129,21 @@ def claims():
 def supa(method, path, body=None, prefer=None):
     url = os.environ["SUPABASE_URL"].strip().rstrip("/") + "/rest/v1/" + path
     key = re.sub(r"\s+", "", os.environ["SUPABASE_SERVICE_KEY"])
-    headers = {"apikey": key, "Authorization": "Bearer " + key, "Content-Type": "application/json"}
+    headers = {"apikey": key, "Content-Type": "application/json"}
+    if key.startswith("eyJ"):  # legacy JWT service_role key; new sb_secret_ keys go in apikey only
+        headers["Authorization"] = "Bearer " + key
     if prefer:
         headers["Prefer"] = prefer
     req = urllib.request.Request(url, method=method, headers=headers,
                                  data=json.dumps(body).encode() if body is not None else None)
-    with urllib.request.urlopen(req, timeout=30) as r:
-        txt = r.read().decode()
-        return json.loads(txt) if txt else None
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            txt = r.read().decode()
+            return json.loads(txt) if txt else None
+    except urllib.error.HTTPError as e:
+        kind = "sb_secret" if key.startswith("sb_secret_") else "legacy JWT" if key.startswith("eyJ") else "publishable?" if key.startswith("sb_publishable_") else "unrecognised"
+        print(f"supabase {method} {path.split('?')[0]} -> {e.code} (key type: {kind}): {e.read().decode()[:300]}", file=sys.stderr)
+        raise
 
 
 def main():
