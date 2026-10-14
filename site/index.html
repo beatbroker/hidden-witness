@@ -721,10 +721,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   let openRound = null;
   const utf8Len = t => new TextEncoder().encode(t).length;
   const b64url = t => { let b = ""; new TextEncoder().encode(t).forEach(c => b += String.fromCharCode(c)); return btoa(b).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
+  // One line, split with "|": some wallets flatten line breaks in memos.
   function buildMemo(round, seat, answer, reply){
-    const lines = [MEMO_TAG, "round: " + round, "seat: " + seat, "answer: " + answer];
-    if (reply) lines.push("reply: " + reply);
-    return lines.join("\n");
+    const parts = [MEMO_TAG, "round: " + round, "seat: " + seat, "answer: " + answer.replace(/\|/g, " ")];
+    if (reply) parts.push("reply: " + reply);
+    return parts.join(" | ");
   }
   async function loadRounds(){
     try {

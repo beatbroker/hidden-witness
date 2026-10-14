@@ -36,12 +36,9 @@ WALLET_DIR = os.environ.get("WALLET_DIR", "./hw_wallet")
 LWD = os.environ.get("HW_LWD", "zecrocks")
 DRY = os.environ.get("HW_DRY_RUN") == "1"
 
-# The memo the page writes. Lines are "key: value"; order and spacing don't matter.
-#   THE HIDDEN WITNESS
-#   round: egg
-#   seat: 214
-#   answer: ...
-#   reply: u1...            (optional: where to send the bounty)
+# The memo the page writes (one line; line breaks or "|" both work, order doesn't matter):
+#   THE HIDDEN WITNESS | round: egg | seat: 214 | answer: ... | reply: u1...
+# "reply" is optional: where to send a prize.
 MEMO_TAG = "THE HIDDEN WITNESS"
 UA_RE = re.compile(r"^(u1|zs1)[0-9a-z]{20,}$")
 
@@ -80,18 +77,24 @@ def memo_text(b):
         return None
 
 
+FIELD_RE = re.compile(r"\b(round|seat|answer|reply)\s*[:=]\s*", re.I)
+
+
 def parse(text):
+    """Accepts the memo on separate lines, on one line, or split with "|".
+    Many wallets flatten line breaks in memos, so field names are the anchors."""
     if not text or MEMO_TAG.lower() not in text.lower():
         return None
+    body = text.replace("\r", " ").replace("\n", " | ")
     fields = {}
-    for line in text.splitlines():
-        if ":" in line:
-            k, v = line.split(":", 1)
-            fields[k.strip().lower()] = v.strip()
-    seat = re.sub(r"\D", "", fields.get("seat", ""))
-    reply = fields.get("reply", "").strip()
+    marks = list(FIELD_RE.finditer(body))
+    for n, m in enumerate(marks):
+        end = marks[n + 1].start() if n + 1 < len(marks) else len(body)
+        fields.setdefault(m.group(1).lower(), body[m.end():end].strip(" |\t"))
+    seat = re.sub(r"\D", "", fields.get("seat", ""))[:4]
+    reply = re.sub(r"\s+", "", fields.get("reply", ""))
     return {
-        "round": fields.get("round", "").strip().lower(),
+        "round": re.sub(r"[^a-z0-9-]", "", fields.get("round", "").lower()),
         "seat": int(seat) if seat and 1 <= int(seat) <= 1000 else None,
         "answer": fields.get("answer", ""),
         "reply": reply if UA_RE.match(reply) else None,
