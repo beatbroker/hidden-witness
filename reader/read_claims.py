@@ -101,12 +101,14 @@ def claims():
     db = sqlite3.connect(os.path.join(WALLET_DIR, "data.sqlite"))
     rows = db.execute(
         """
-        select o.txid, o.mined_height, o.memo, o.value, o.output_pool, o.output_index, b.time
+        select o.txid, o.tx_mined_height, o.memo, o.value, o.output_pool, o.output_index, b.time
           from v_tx_outputs o
-          left join blocks b on b.height = o.mined_height
-         where is_sent_row = 0 and memo is not null and mined_height is not null
-           and output_pool in (2, 3)          -- Sapling or Orchard: shielded only
-         order by mined_height, txid, output_index
+          left join blocks b on b.height = o.tx_mined_height
+         where o.to_account_uuid is not null          -- received by the witness wallet
+           and coalesce(o.is_change, 0) = 0
+           and o.memo is not null and o.tx_mined_height is not null
+           and o.output_pool in (2, 3)                -- Sapling or Orchard: shielded only
+         order by o.tx_mined_height, o.txid, o.output_index
         """
     ).fetchall()
     tip = db.execute("select max(height) from blocks").fetchone()[0]
