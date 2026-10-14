@@ -1,0 +1,85 @@
+name: keeper (reads every 5 minutes)
+
+# GitHub's own timer can be slow to start, and it skips runs under load.
+# The keeper doesn't rely on it: one job reads the chain every 5 minutes for
+# almost 6 hours, saves the view-only wallet, then starts a fresh copy of itself.
+# Restarting uses the repository's built-in token, so no personal token is stored.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"   # safety net: restarts the chain if it ever breaks
+
+concurrency:
+  group: reader              # shared with reader.yml: never two readers on the wallet at once
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write             # lets the keeper start its own next run
+
+env:
+  DEVTOOL_REV: 5a26ee854e634a4e88d1d79dab13f8fbb1eac6b8
+  ROUNDS: "68"               # 68 reads x 5 minutes = 5 h 40 min
+
+jobs:
+  keep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore zcash-devtool build
+        id: tool
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/bin/zcash-devtool
+          key: devtool-${{ env.DEVTOOL_REV }}
+
+      - name: Build zcash-devtool (only if the cache is missing)
+        if: steps.tool.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update && sudo apt-get install -y protobuf-compiler
+          git clone https://github.com/zcash/zcash-devtool /tmp/devtool
+          cd /tmp/devtool && git checkout "$DEVTOOL_REV"
+          cargo build --release
+          mkdir -p ~/bin && cp target/release/zcash-devtool ~/bin/
+
+      - name: Restore view-only wallet
+        uses: actions/cache/restore@v4
+        with:
+          path: hw_wallet
+          key: wallet-${{ github.run_id }}
+          restore-keys: wallet-
+
+      - name: Read the chain every 5 minutes
+        env:
+          WALLET_DIR: hw_wallet
+          HW_UFVK: ${{ secrets.HW_UFVK }}
+          HW_BIRTHDAY: ${{ secrets.HW_BIRTHDAY }}
+          HW_ANSWERS: ${{ secrets.HW_ANSWERS }}
+          HW_DROPS: ${{ secrets.HW_DROPS }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          export DEVTOOL=$HOME/bin/zcash-devtool
+          for i in $(seq 1 "$ROUNDS"); do
+            start=$(date +%s)
+            echo "::group::read $i of $ROUNDS ($(date -u +%H:%M:%SZ))"
+            python3 reader/read_claims.py || echo "read $i failed; trying again next round"
+            echo "::endgroup::"
+            spent=$(( $(date +%s) - start ))
+            [ "$i" -lt "$ROUNDS" ] && sleep $(( spent < 300 ? 300 - spent : 5 ))
+          done
+
+      - name: Save view-only wallet
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: hw_wallet
+          key: wallet-${{ github.run_id }}
+
+      - name: Start the next keeper
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run keeper.yml --repo "${{ github.repository }}" --ref main
