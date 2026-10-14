@@ -23,6 +23,7 @@ import datetime
 import json
 import os
 import re
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -52,8 +53,10 @@ def run(*args):
 
 def sync():
     if not os.path.exists(os.path.join(WALLET_DIR, "data.sqlite")):
-        run("init-fvk", "--name", "hidden-witness", "--fvk", os.environ["HW_UFVK"],
-            "--birthday", os.environ["HW_BIRTHDAY"], "-s", LWD)
+        shutil.rmtree(WALLET_DIR, ignore_errors=True)  # clear any half-made wallet
+        ufvk = re.sub(r"\s+", "", os.environ["HW_UFVK"])        # pasted keys often carry a stray newline
+        birthday = re.sub(r"\D", "", os.environ["HW_BIRTHDAY"])
+        run("init-fvk", "--name", "hidden-witness", "--fvk", ufvk, "--birthday", birthday, "-s", LWD)
     run("sync", "-s", LWD)
     # Memos are not in compact blocks; enhance downloads full transactions and decrypts them.
     run("enhance", "-s", LWD)
