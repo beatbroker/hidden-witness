@@ -60,6 +60,7 @@ jobs:
           HW_UFVK: ${{ secrets.HW_UFVK }}
           HW_BIRTHDAY: ${{ secrets.HW_BIRTHDAY }}
           HW_ANSWERS: ${{ secrets.HW_ANSWERS }}
+          HW_DROPS: ${{ secrets.HW_DROPS }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: DEVTOOL=$HOME/bin/zcash-devtool python3 reader/read_claims.py
