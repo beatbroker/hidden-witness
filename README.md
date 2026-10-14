@@ -22,7 +22,7 @@ No riddle, nothing to compute, nothing an AI can solve in advance. The only way 
 - **Your shielded address is your identity.** Each player puts their own Zcash address in the memo. That is how catches add up across drops, and it is where prizes are paid, privately, without ever learning who the player is. The public board only shows a keyed hash of it, labelled with the player's seat.
 - **Publicly countable.** Every catch on the board is a real shielded transaction. Anyone can count them; no one can read them.
 
-Taking a seat is free and needs no wallet. Catching a drop takes one tiny shielded payment (0.001 ZEC plus the network fee), because that is the move that has to be private and timestamped.
+Taking a seat is free and needs no wallet. Catching a drop takes one tiny shielded payment (0.0001 ZEC plus the network fee), because that is the move that has to be private and timestamped.
 
 ## How it works
 
@@ -35,7 +35,7 @@ Taking a seat is free and needs no wallet. Catching a drop takes one tiny shield
 ```
 
 1. **The page** (`site/index.html`) builds the memo (`THE HIDDEN WITNESS | seat: 214 | code: … | reply: u1…`) and a [ZIP-321](https://zips.z.cash/zip-0321) payment URI with the memo base64url-encoded, shown as a QR code and an "open in wallet" link. The page never learns whether a code is right, or when the next drop is.
-2. **The player** sends 0.001 ZEC from any shielded wallet. The memo is encrypted to the witness address.
+2. **The player** sends 0.0001 ZEC from any shielded wallet. The memo is encrypted to the witness address.
 3. **The reader** (`reader/read_claims.py`) runs every five minutes on GitHub Actions. It holds only the wallet's **unified full viewing key**, so it can see incoming payments but can never spend. It syncs with [`zcash-devtool`](https://github.com/zcash/zcash-devtool) (`init-fvk`, `sync`, `enhance`), reads shielded outputs only (Sapling, Orchard and Ironwood), decodes ZIP-302 text memos, matches each code to its drop, and checks the block's timestamp against that drop's window. Each player catches each drop once.
 4. **Supabase** stores the public result only: drop, seat, block height, txid, caught or not, and a keyed hash of the player. The code, amount, sender and memo never leave the reader. Reply addresses go to a table with no public access.
 5. **The board** on the page shows each drop once it has landed (never before), how many caught it, and the most-caught players by seat.
