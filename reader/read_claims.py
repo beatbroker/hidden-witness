@@ -2,15 +2,25 @@
 """THE HIDDEN WITNESS: the shielded claim reader.
 
 Reads the game wallet with its viewing key (it can see, never spend), finds
-claims sent as shielded Zcash payments, checks each sealed answer, and posts
-only the public result to Supabase: round, seat, block, txid, correct or not.
+claims sent as shielded Zcash payments, and checks each one.
 
-The answer, the sender, the amount and the memo never leave this script.
+DROPS: at odd hours a code drops on X, marked with ⌖. Each code lives for a
+fixed window (60 minutes). A player catches the drop by sealing the code in a
+shielded payment that is mined inside the window. The clock is the chain: the
+block's own timestamp decides, plus a few minutes' grace for mining.
+Identity is the player's own shielded address (the memo's reply field); the
+public board only ever sees a keyed hash of it.
+
+Public results: drop, seat, block, txid, caught or not. The code, the sender,
+the amount, the address and the memo never leave this script.
 
 Environment:
   HW_UFVK              the game wallet's unified full viewing key (uview1...)
   HW_BIRTHDAY          block height the game wallet was created at
-  HW_ANSWERS           JSON: {"egg": "the answer", ...}  (kept secret)
+  HW_DROPS             JSON list, kept secret: [{"id": "d1", "code": "ASH 41",
+                       "opens": "2026-10-16T03:17:00-07:00", "minutes": 60}, ...]
+  HW_GRACE_MINUTES     extra minutes after a window for mining (default 5)
+  HW_ANSWERS           (optional, legacy riddle rounds) JSON: {"round": "answer"}
   SUPABASE_URL         https://<project>.supabase.co
   SUPABASE_SERVICE_KEY service role key (kept secret; never in the page)
   DEVTOOL              path to the zcash-devtool binary
@@ -20,6 +30,8 @@ Environment:
 """
 
 import datetime
+import hashlib
+import hmac
 import json
 import os
 import re
@@ -37,8 +49,8 @@ LWD = os.environ.get("HW_LWD", "zecrocks")
 DRY = os.environ.get("HW_DRY_RUN") == "1"
 
 # The memo the page writes (one line; line breaks or "|" both work, order doesn't matter):
-#   THE HIDDEN WITNESS | round: egg | seat: 214 | answer: ... | reply: u1...
-# "reply" is optional: where to send a prize.
+#   THE HIDDEN WITNESS | seat: 214 | code: ASH 41 | reply: u1...
+# "reply" is the player's own shielded address: their identity in the game, and where prizes go.
 MEMO_TAG = "THE HIDDEN WITNESS"
 UA_RE = re.compile(r"^(u1|zs1)[0-9a-z]{20,}$")
 
@@ -77,7 +89,7 @@ def memo_text(b):
         return None
 
 
-FIELD_RE = re.compile(r"\b(round|seat|answer|reply)\s*[:=]\s*", re.I)
+FIELD_RE = re.compile(r"\b(round|seat|answer|code|reply)\s*[:=]\s*", re.I)
 
 
 def parse(text):
@@ -96,7 +108,7 @@ def parse(text):
     return {
         "round": re.sub(r"[^a-z0-9-]", "", fields.get("round", "").lower()),
         "seat": int(seat) if seat and 1 <= int(seat) <= 1000 else None,
-        "answer": fields.get("answer", ""),
+        "answer": fields.get("code") or fields.get("answer", ""),
         "reply": reply if UA_RE.match(reply) else None,
     }
 
@@ -162,53 +174,105 @@ def supa(method, path, body=None, prefer=None):
         raise
 
 
+def iso(ts):
+    return datetime.datetime.fromtimestamp(ts, datetime.timezone.utc).isoformat()
+
+
+def ts(iso_str):
+    return datetime.datetime.fromisoformat(iso_str.replace("Z", "+00:00")).timestamp()
+
+
+def player_id(reply):
+    """A stable public tag for a player that doesn't reveal their address (keyed with the viewing key)."""
+    key = re.sub(r"\s+", "", os.environ.get("HW_UFVK", "local")).encode()
+    return hmac.new(key, reply.encode(), hashlib.sha256).hexdigest()[:12]
+
+
+def load_drops(now):
+    grace = float(os.environ.get("HW_GRACE_MINUTES", "5")) * 60
+    drops = []
+    for n, d in enumerate(json.loads(os.environ.get("HW_DROPS", "[]") or "[]"), 1):
+        opens = ts(d["opens"])
+        closes = opens + float(d.get("minutes", 60)) * 60
+        drops.append({"id": d["id"], "n": n, "code": norm(d["code"]), "opens": opens,
+                      "closes": closes, "until": closes + grace, "label": d.get("label") or f"Drop {n}"})
+    codes = [d["code"] for d in drops]
+    if len(codes) != len(set(codes)):
+        raise SystemExit("two drops share a code; every code must be unique")
+    return drops
+
+
 def main():
     if os.environ.get("HW_SKIP_SYNC") != "1":
         sync()
     found, tip = claims()
-    answers = {k.lower(): norm(v) for k, v in json.loads(os.environ.get("HW_ANSWERS", "{}")).items()}
-
-    # Some sync modes don't keep every block's time; estimate from the tip (75-second blocks).
     now = datetime.datetime.now(datetime.timezone.utc).timestamp()
+    # Some sync modes don't keep every block's time; estimate from the tip (75-second blocks).
     for c in found:
         if not c.get("time") and tip:
             c["time"] = now - (tip - c["height"]) * 75
+
+    drops = load_drops(now)
+    by_code = {d["code"]: d for d in drops}
+    answers = {k.lower(): norm(v) for k, v in json.loads(os.environ.get("HW_ANSWERS", "{}") or "{}").items()}
+
+    # Publish only the drops that have already opened: nothing public reveals a drop before it lands.
+    round_rows = [{"id": d["id"], "label": d["label"], "is_open": d["opens"] <= now < d["closes"],
+                   "opened_at": iso(d["opens"]), "closed_at": iso(d["closes"])}
+                  for d in drops if d["opens"] <= now]
     rounds = {} if DRY else {r["id"]: r for r in supa("GET", "witness_rounds?select=*")}
-    proofs, payouts, rank = [], [], {}
+
+    proofs, payouts, caught, rank = [], [], set(), {}
     for c in found:
-        rnd = c["round"]
-        r = rounds.get(rnd)
-        # A claim for a round that hasn't opened, or mined before it opened (a test, or a leak), is ignored entirely.
-        if r and not r.get("opened_at"):
-            continue
-        if r and r.get("opened_at") and c.get("time"):
-            opened = datetime.datetime.fromisoformat(r["opened_at"].replace("Z", "+00:00")).timestamp()
-            if c["time"] < opened:
+        code = norm(c["answer"])
+        d = by_code.get(code)
+        pid = player_id(c["reply"]) if c["reply"] else None
+        if d is not None:
+            if d["opens"] > now or c["time"] < d["opens"]:
+                continue  # mined before the drop existed: a test or a leak, ignored entirely
+            in_window = c["time"] <= d["until"]
+            ok = bool(in_window and pid and (pid, d["id"]) not in caught)
+            pos = None
+            if ok:
+                caught.add((pid, d["id"]))
+                rank[d["id"]] = rank.get(d["id"], 0) + 1
+                pos = rank[d["id"]]
+            proofs.append({"txid": c["txid"], "round_id": d["id"], "seat": c["seat"], "height": c["height"],
+                           "ok": ok, "rank": pos, "player": pid})
+            print(f"  claim at block {c['height']}: {d['label']}, "
+                  f"{'in window' if in_window else 'late'}, {'caught' if ok else 'not counted'}")
+        else:
+            # Legacy riddle rounds (if any) or a wrong code.
+            rnd = c["round"]
+            r = rounds.get(rnd)
+            if r and not r.get("opened_at"):
                 continue
-        valid_round = DRY or (r is not None and (r.get("opened_at") or "") != "")
-        ok = bool(valid_round and rnd in answers and answers[rnd] and norm(c["answer"]) == answers[rnd])
-        pos = None
-        if ok:
-            rank[rnd] = rank.get(rnd, 0) + 1
-            pos = rank[rnd]
-            cap = (r or {}).get("max_proven")
-            if cap and pos > cap:
-                ok, pos = False, None
-        proofs.append({"txid": c["txid"], "round_id": rnd if (DRY or rnd in rounds) else None,
-                       "seat": c["seat"], "height": c["height"], "ok": ok, "rank": pos})
+            if r and r.get("opened_at") and c["time"] < ts(r["opened_at"]):
+                continue
+            ok = bool(r and rnd in answers and answers[rnd] and code == answers[rnd])
+            pos = None
+            if ok:
+                rank[rnd] = rank.get(rnd, 0) + 1
+                pos = rank[rnd]
+            proofs.append({"txid": c["txid"], "round_id": rnd if (r or DRY) and rnd else None, "seat": c["seat"],
+                           "height": c["height"], "ok": ok, "rank": pos, "player": pid})
         if c["reply"]:
             payouts.append({"txid": c["txid"], "reply_to": c["reply"]})
 
-    print(f"chain tip read: {tip}; claims found: {len(proofs)}; proven: {sum(p['ok'] for p in proofs)}")
+    print(f"chain tip read: {tip}; drops opened: {len(round_rows)}; claims: {len(proofs)}; counted: {sum(p['ok'] for p in proofs)}")
     if DRY:
+        for r in round_rows:
+            print(json.dumps(r))
         for p in proofs:
             print(json.dumps(p))
         return
+    if round_rows:
+        supa("POST", "witness_rounds?on_conflict=id", round_rows, "resolution=merge-duplicates,return=minimal")
     if proofs:
         supa("POST", "witness_proofs?on_conflict=txid", proofs, "resolution=merge-duplicates,return=minimal")
     if payouts:
         supa("POST", "witness_payouts?on_conflict=txid", payouts, "resolution=ignore-duplicates,return=minimal")
-    supa("PATCH", "witness_reader?id=eq.1", {"synced_height": tip, "synced_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}, "return=minimal")
+    supa("PATCH", "witness_reader?id=eq.1", {"synced_height": tip, "synced_at": iso(now)}, "return=minimal")
 
 
 if __name__ == "__main__":

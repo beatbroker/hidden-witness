@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>THE HIDDEN WITNESS</title>
-<!-- v18: the shielded proof door · source: github.com/beatbroker/hidden-witness -->
+<!-- v19: the drops · source: github.com/beatbroker/hidden-witness -->
 <meta name="description" content="Somewhere in this crowd is a witness. A Zcash portal by Berlin Studios for the Zcash community.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -107,6 +107,10 @@
   .pay button.b{padding:6px 10px;font-size:.72rem}
   .note{margin:14px 0 0;font-size:.82rem;color:var(--ink-2);max-width:60ch}
   .boardstats{margin:0 0 12px;font-size:.9rem}
+  .bh{margin:18px 0 6px;font-family:var(--display);font-weight:400;font-size:.9rem;letter-spacing:.06em}
+  .board li.live b{animation:none}
+  .board li.live{background:var(--ink);color:var(--paper);padding-left:8px;padding-right:8px}
+  .board li.live a,.board li.live span{color:var(--paper-2)}
   .boardstats b{font-family:var(--display);font-size:1.4rem}
   .board{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
   .board li{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:.84rem}
@@ -264,21 +268,22 @@
   <section aria-labelledby="proveHead" id="prove">
     <div class="door">
       <div>
-        <h2 id="proveHead">Prove it, shielded</h2>
-        <p class="sub">A proof here is a real Zcash payment. Seal your answer inside its encrypted memo and send it to the witness. The chain records a valid payment and nothing else: not who sent it, not what it says, not which seat it came from. No one can read your answer, so no one can copy it.</p>
-        <div id="doorShut"><p class="shut">The door is shut. It opens when a clue says so. Watch for &#8982;.</p></div>
+        <h2 id="proveHead">Catch the drops</h2>
+        <p class="sub">Seven drops land on X at odd hours, each marked &#8982;. Each carries a code, and each code lives for 60 minutes. Then the post is gone and the drop is never repeated.</p>
+        <p class="sub">To catch one, seal the code inside a shielded Zcash payment and send it before the hour runs out. The chain is the clock: the block your payment lands in decides. It records a valid payment and nothing else, not who sent it, not what it says. Turn on notifications for <a href="https://x.com/chrisberlin" target="_blank" rel="noopener">@chrisberlin</a>.</p>
+        <div id="doorShut"><p class="shut">The drops haven't started. Watch for &#8982;.</p></div>
         <form id="doorForm" hidden autocomplete="off">
           <p class="roundname" id="roundName"></p>
           <label class="f">Your seat number
             <input type="text" id="pSeat" inputmode="numeric" maxlength="4" placeholder="214">
           </label>
-          <label class="f">Your answer
-            <input type="text" id="pAnswer" maxlength="120" spellcheck="false">
+          <label class="f">The code from the drop
+            <input type="text" id="pAnswer" maxlength="40" spellcheck="false" autocapitalize="characters">
           </label>
-          <label class="f">Your shielded address, so a prize can reach you (optional)
+          <label class="f">Your shielded address (u1&hellip;). It is how the game knows you, and where prizes go. Use the same one every time.
             <input type="text" id="pReply" maxlength="400" spellcheck="false" placeholder="u1&hellip;">
           </label>
-          <div class="row"><button class="b solid" id="sealBtn" type="button">Seal my proof</button></div>
+          <div class="row"><button class="b solid" id="sealBtn" type="button">Seal my catch</button></div>
           <p class="msg" id="sealMsg" aria-live="polite"></p>
         </form>
         <div class="sealed" id="sealed" hidden>
@@ -290,14 +295,17 @@
             <dt>Amount</dt><dd><code id="payAmt"></code><button class="b" type="button" data-copy="payAmt">Copy</button></dd>
             <dt>Memo</dt><dd><pre id="payMemo"></pre><button class="b" type="button" data-copy="payMemo">Copy</button></dd>
           </dl>
-          <p class="note">Send it from a shielded Zcash wallet (Zashi, Zingo, Noir, Zkool and others). Scan the code or tap the button and the memo fills in. If your wallet doesn't, paste the memo exactly. Your proof lands on the board within a few minutes of the payment being mined. The first correct proof on chain wins. A wrong answer only costs that payment, so you can try again.</p>
+          <p class="note">Send it from a shielded Zcash wallet (Zashi, Zingo, Noir, Zkool and others). Scan the code or tap the button and the memo fills in. If your wallet doesn't, paste the memo exactly. Payments sent in the last minute still count if the network mines them within 5 minutes. Your catch lands on the board a few minutes after it's mined. Each drop counts once per player.</p>
         </div>
       </div>
       <div class="aside">
-        <h2>The proof board</h2>
+        <h2>The board</h2>
         <p class="sub">What the chain says. Nothing more.</p>
-        <p class="boardstats"><b id="nSealed">0</b> sealed &middot; <b id="nProven">0</b> proven</p>
-        <ol class="board" id="board"><li class="empty">No proofs yet.</li></ol>
+        <p class="boardstats"><b id="nSealed">0</b> sealed &middot; <b id="nProven">0</b> caught</p>
+        <h3 class="bh">Drops</h3>
+        <ol class="board" id="drops"><li class="empty">None yet. Seven are coming.</li></ol>
+        <h3 class="bh">Most caught</h3>
+        <ol class="board" id="board"><li class="empty">No catches yet.</li></ol>
         <p class="dim" id="readerNote"></p>
       </div>
     </div>
@@ -723,23 +731,29 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   const b64url = t => { let b = ""; new TextEncoder().encode(t).forEach(c => b += String.fromCharCode(c)); return btoa(b).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
   // One line, split with "|": some wallets flatten line breaks in memos.
   function buildMemo(round, seat, answer, reply){
-    const parts = [MEMO_TAG, "round: " + round, "seat: " + seat, "answer: " + answer.replace(/\|/g, " ")];
+    const parts = [MEMO_TAG, "seat: " + seat, "code: " + answer.replace(/\|/g, " ")];
     if (reply) parts.push("reply: " + reply);
     return parts.join(" | ");
   }
   async function loadRounds(){
     try {
-      const r = await fetch(CONFIG.SUPABASE_URL + "/rest/v1/witness_rounds?select=id,label,is_open&is_open=eq.true&order=opened_at.desc&limit=1", { headers: H() });
+      // The door opens for the whole season once the "drops" switch is on. Which drop a code belongs to is the reader's business.
+      const r = await fetch(CONFIG.SUPABASE_URL + "/rest/v1/witness_rounds?select=id,label,is_open,opened_at,closed_at", { headers: H() });
       if (!r.ok) return;
       const rows = await r.json();
-      openRound = rows[0] || null;
+      const season = rows.find(x => x.id === "drops");
+      openRound = season && season.is_open ? season : null;
       $("doorShut").hidden = !!openRound;
       $("doorForm").hidden = !openRound;
-      if (openRound) $("roundName").textContent = "Open now: " + openRound.label;
+      const drops = rows.filter(x => /^d\d+$/.test(x.id)).sort((a, b) => Date.parse(a.opened_at) - Date.parse(b.opened_at));
+      window.__drops = drops;
+      const live = drops.find(x => x.is_open && Date.parse(x.closed_at) > Date.now());
+      if (openRound) $("roundName").textContent = live ? "\u2316 " + live.label + " is live. Closes " + new Date(live.closed_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + "." : drops.length + " of 7 drops so far. The next one lands without warning.";
     } catch (e) {}
   }
   function prefillSeat(){
     try { const saved = JSON.parse(localStorage.getItem(SEAT_STORE) || "null"); if (saved && saved.seat && !$("pSeat").value) $("pSeat").value = String(saved.seat); } catch (e) {}
+    try { const r = localStorage.getItem("hidden_witness_reply_v1"); if (r && !$("pReply").value) $("pReply").value = r; } catch (e) {}
   }
   $("sealBtn").addEventListener("click", () => {
     const msg = $("sealMsg"); msg.classList.remove("err"); msg.textContent = "";
@@ -748,9 +762,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const seat = parseInt(($("pSeat").value || "").replace(/\D/g, ""), 10);
     if (!(seat >= 1 && seat <= 1000)) return err("Add your seat number, 1 to 1,000.");
     const answer = ($("pAnswer").value || "").replace(/\s+/g, " ").trim();
-    if (!answer) return err("Add your answer.");
-    const reply = ($("pReply").value || "").trim();
-    if (reply && !/^(u1|zs1)[0-9a-z]{20,}$/.test(reply)) return err("That doesn't look like a shielded address. It should start with u1 or zs1.");
+    if (!answer) return err("Add the code from the drop.");
+    const reply = ($("pReply").value || "").replace(/\s+/g, "");
+    if (!reply) return err("Add your shielded address. It's how the game knows your catches are yours.");
+    if (!/^(u1|zs1)[0-9a-z]{20,}$/.test(reply)) return err("That doesn't look like a shielded address. It should start with u1 or zs1.");
+    try { localStorage.setItem("hidden_witness_reply_v1", reply); } catch (e) {}
     const memo = buildMemo(openRound.id, seat, answer, reply);
     if (utf8Len(memo) > 512) return err("That's too long to fit in a memo. Shorten the answer.");
     const uri = "zcash:" + PROOF.address + "?amount=" + PROOF.amount + "&memo=" + b64url(memo);
@@ -775,35 +791,46 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     try {
       const u = CONFIG.SUPABASE_URL + "/rest/v1/";
       const [pr, rd] = await Promise.all([
-        fetch(u + "witness_proofs?select=txid,round_id,seat,height,ok,rank&order=height.asc&limit=2000", { headers: H() }),
+        fetch(u + "witness_proofs?select=txid,round_id,seat,height,ok,rank,player&order=height.asc&limit=2000", { headers: H() }),
         fetch(u + "witness_reader?select=synced_height,synced_at&id=eq.1", { headers: H() })
       ]);
       if (pr.ok){
         const rows = await pr.json();
-        const proven = rows.filter(x => x.ok);
+        const caught = rows.filter(x => x.ok);
         $("nSealed").textContent = rows.length.toLocaleString("en-US");
-        $("nProven").textContent = proven.length.toLocaleString("en-US");
-        const ol = $("board"); ol.textContent = "";
-        if (!proven.length){ const li = document.createElement("li"); li.className = "empty"; li.textContent = rows.length ? "Sealed proofs have arrived. None proven yet." : "No proofs yet."; ol.appendChild(li); }
-        proven.forEach(x => {
-          const li = document.createElement("li");
-          const b = document.createElement("b"); b.textContent = (x.rank ? "#" + x.rank + " " : "") + (x.seat ? "Seat #" + String(x.seat).padStart(3, "0") : "A sealed seat");
-          const s = document.createElement("span"); s.textContent = "proven at block " + Number(x.height).toLocaleString("en-US");
-          const a = document.createElement("a"); a.href = PROOF.explorer + x.txid; a.target = "_blank"; a.rel = "noopener"; a.textContent = "tx " + x.txid.slice(0, 10) + "…";
-          li.append(b, s, a); ol.appendChild(li);
+        $("nProven").textContent = caught.length.toLocaleString("en-US");
+        const li = (cls, parts) => { const e = document.createElement("li"); if (cls) e.className = cls; parts.forEach(p => e.appendChild(p)); return e; };
+        const el = (tag, text) => { const e = document.createElement(tag); e.textContent = text; return e; };
+        // drops
+        const drops = window.__drops || [];
+        const dl = $("drops"); dl.textContent = "";
+        if (!drops.length) dl.appendChild(li("empty", [el("span", "None yet. Seven are coming.")]));
+        drops.forEach(d => {
+          const n = caught.filter(x => x.round_id === d.id).length;
+          const live = d.is_open && Date.parse(d.closed_at) > Date.now();
+          const t = new Date(d.opened_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+          dl.appendChild(li(live ? "live" : "", [el("b", "\u2316 " + d.label), el("span", live ? "live now, " + n + " caught" : t + ", " + n + " caught")]));
         });
+        // most caught: one line per player, labelled by the seat they used
+        const per = {};
+        caught.forEach(x => { const k = x.player || x.txid; (per[k] = per[k] || { seat: x.seat, n: 0, first: x.height }); per[k].n++; if (x.seat) per[k].seat = x.seat; });
+        const list = Object.values(per).sort((a, b) => b.n - a.n || a.first - b.first).slice(0, 50);
+        const ol = $("board"); ol.textContent = "";
+        if (!list.length) ol.appendChild(li("empty", [el("span", rows.length ? "Sealed payments have arrived. No catches yet." : "No catches yet.")]));
+        list.forEach(p => ol.appendChild(li("", [el("b", p.seat ? "Seat #" + String(p.seat).padStart(3, "0") : "A sealed seat"), el("span", p.n + " of 7 caught")])));
       }
       if (rd.ok){
         const r = (await rd.json())[0];
         if (r && r.synced_at){
           const mins = Math.max(0, Math.round((Date.now() - Date.parse(r.synced_at)) / 60000));
-          $("readerNote").textContent = "The witness last read the chain at block " + Number(r.synced_height).toLocaleString("en-US") + ", " + (mins < 1 ? "just now" : mins + (mins === 1 ? " minute" : " minutes") + " ago") + ". Every proof links to its transaction: anyone can check it exists, no one can read it.";
+          $("readerNote").textContent = "The witness last read the chain at block " + Number(r.synced_height).toLocaleString("en-US") + ", " + (mins < 1 ? "just now" : mins + (mins === 1 ? " minute" : " minutes") + " ago") + ". Every catch is a real shielded transaction: it exists on chain, and no one can read it.";
         }
       }
     } catch (e) {}
   }
-  loadRounds(); loadBoard(); prefillSeat();
-  setInterval(() => { if (!document.hidden){ loadRounds(); loadBoard(); } }, 30000);
+  const refreshDoor = () => loadRounds().then(loadBoard);
+  refreshDoor(); prefillSeat();
+  setInterval(() => { if (!document.hidden) refreshDoor(); }, 30000);
 
   /* join */
   let found = null, shielded = null;
