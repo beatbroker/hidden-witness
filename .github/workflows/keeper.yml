@@ -10,8 +10,8 @@ on:
     - cron: "17 */6 * * *"   # safety net: restarts the chain if it ever breaks
 
 concurrency:
-  group: reader              # shared with reader.yml: never two readers on the wallet at once
-  cancel-in-progress: false
+  group: keeper              # its own lane, so GitHub's timer runs can never bump the next keeper.
+  cancel-in-progress: false  # (A keeper and a timer run reading at the same moment is harmless: same results.)
 
 permissions:
   contents: read
