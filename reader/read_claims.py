@@ -124,8 +124,8 @@ def claims():
 
 
 def supa(method, path, body=None, prefer=None):
-    url = os.environ["SUPABASE_URL"].rstrip("/") + "/rest/v1/" + path
-    key = os.environ["SUPABASE_SERVICE_KEY"]
+    url = os.environ["SUPABASE_URL"].strip().rstrip("/") + "/rest/v1/" + path
+    key = re.sub(r"\s+", "", os.environ["SUPABASE_SERVICE_KEY"])
     headers = {"apikey": key, "Authorization": "Bearer " + key, "Content-Type": "application/json"}
     if prefer:
         headers["Prefer"] = prefer
