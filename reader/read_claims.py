@@ -108,7 +108,7 @@ def claims():
          where o.to_account_uuid is not null          -- received by the witness wallet
            and coalesce(o.is_change, 0) = 0
            and o.memo is not null and o.tx_mined_height is not null
-           and o.output_pool in (2, 3)                -- Sapling or Orchard: shielded only
+           and o.output_pool in (2, 3, 4)             -- Sapling, Orchard or Ironwood: shielded only
          order by o.tx_mined_height, o.txid, o.output_index
         """
     ).fetchall()

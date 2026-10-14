@@ -37,7 +37,7 @@ Taking a seat is free and needs no wallet. The shielded transaction is the one m
 
 1. **The page** (`site/index.html`) builds the memo and a [ZIP-321](https://zips.z.cash/zip-0321) payment URI with the memo base64url-encoded, shown as a QR code and an "open in wallet" link. The page never learns whether an answer is right.
 2. **The player** sends 0.001 ZEC from any shielded wallet. The memo is encrypted to the witness address.
-3. **The reader** (`reader/read_claims.py`) runs every five minutes on GitHub Actions. It holds only the wallet's **unified full viewing key**, so it can see incoming payments but can never spend. It syncs with [`zcash-devtool`](https://github.com/zcash/zcash-devtool) (`init-fvk`, `sync`, `enhance`), reads Sapling and Orchard outputs only, decodes ZIP-302 text memos, and compares each answer with the round's secret answer.
+3. **The reader** (`reader/read_claims.py`) runs every five minutes on GitHub Actions. It holds only the wallet's **unified full viewing key**, so it can see incoming payments but can never spend. It syncs with [`zcash-devtool`](https://github.com/zcash/zcash-devtool) (`init-fvk`, `sync`, `enhance`), reads shielded outputs only (Sapling, Orchard and Ironwood), decodes ZIP-302 text memos, and compares each answer with the round's secret answer.
 4. **Supabase** stores the public result only: round, seat, block height, txid, correct or not, and rank. The answer, amount, sender and memo never leave the reader. Reply addresses go to a table with no public access.
 5. **The proof board** on the page shows sealed and proven counts, the order of correct proofs, and when the reader last read the chain.
 
