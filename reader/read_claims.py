@@ -112,6 +112,16 @@ def claims():
          order by o.tx_mined_height, o.txid, o.output_index
         """
     ).fetchall()
+    # Public-safe diagnostics (these logs are public): never print memo text, amounts or addresses.
+    diag = db.execute(
+        """
+        select o.output_pool, o.memo is not null, substr(hex(o.memo), 1, 2), o.tx_mined_height is not null
+          from v_tx_outputs o
+         where o.to_account_uuid is not null and coalesce(o.is_change, 0) = 0
+        """
+    ).fetchall()
+    for pool, has_memo, first, mined in diag:
+        print(f"received output: pool={pool} mined={bool(mined)} memo={'yes' if has_memo else 'no'} memo_byte0={first or '-'}")
     tip = db.execute("select max(height) from blocks").fetchone()[0]
     db.close()
     seen = {}
@@ -120,6 +130,9 @@ def claims():
         if txhex in seen:
             continue
         c = parse(memo_text(memo))
+        if c is None:
+            t = memo_text(memo)
+            print(f"  output in block {height}: memo is {'text without the game tag' if t else 'not text / empty'}")
         if c and value and value > 0:
             c.update(txid=txhex, height=height, time=btime)
             seen[txhex] = c
