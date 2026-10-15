@@ -89,7 +89,7 @@ def memo_text(b):
         return None
 
 
-FIELD_RE = re.compile(r"\b(round|seat|answer|code|reply)\s*[:=]\s*", re.I)
+FIELD_RE = re.compile(r"\b(round|seat|answer|code|accuse|reply)\s*[:=]\s*", re.I)
 
 
 def parse(text):
@@ -109,6 +109,7 @@ def parse(text):
         "round": re.sub(r"[^a-z0-9-]", "", fields.get("round", "").lower()),
         "seat": int(seat) if seat and 1 <= int(seat) <= 1000 else None,
         "answer": fields.get("code") or fields.get("answer", ""),
+        "accuse": re.sub(r"[^0-9a-f]", "", fields.get("accuse", "").lower())[:8],
         "reply": reply if UA_RE.match(reply) else None,
     }
 
@@ -188,10 +189,76 @@ def player_id(reply):
     return hmac.new(key, reply.encode(), hashlib.sha256).hexdigest()[:12]
 
 
-def load_drops(now):
+def face_id(url):
+    """FNV-1a of the picture URL: the same id the page computes for each face."""
+    h = 0x811C9DC5
+    for ch in url:
+        h ^= ord(ch)
+        h = (h * 0x01000193) & 0xFFFFFFFF
+    return f"{h:08x}"
+
+
+def load_private():
+    """Game settings kept in a table only the reader can read: schedule, witness, when the game begins."""
+    if DRY:
+        return {}
+    try:
+        return {r["key"]: r["value"] for r in supa("GET", "witness_secret?select=key,value")}
+    except Exception as e:
+        print("private settings unavailable:", e, file=sys.stderr)
+        return {}
+
+
+def snapshot_crowd():
+    """Keep the game's own copy of every crowd picture, so a face can't vanish if its owner changes it."""
+    done_path = os.path.join(WALLET_DIR, "snapshots_done.txt")
+    done = set(open(done_path).read().split()) if os.path.exists(done_path) else set()
+    urls = set()
+    try:
+        page = open(os.path.join(os.path.dirname(__file__), "..", "site", "index.html")).read()
+        urls |= set(re.findall(r'"a":"(https://pbs\.twimg\.com/profile_images/[^"]+)"', page))
+    except OSError:
+        pass
+    try:
+        urls |= {r["avatar"] for r in supa("GET", "witnesses?select=avatar&limit=5000") if r.get("avatar")}
+    except Exception:
+        pass
+    base = os.environ["SUPABASE_URL"].strip().rstrip("/")
+    key = re.sub(r"\s+", "", os.environ["SUPABASE_SERVICE_KEY"])
+    added = 0
+    for u in sorted(urls):
+        fid = face_id(u)
+        if fid in done or not u.startswith("https://pbs.twimg.com/profile_images/"):
+            continue
+        try:
+            with urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"}), timeout=20) as r:
+                img = r.read()
+        except Exception:
+            continue  # picture already gone from X; nothing to save
+        for auth in (False, True):
+            h = {"apikey": key, "Content-Type": "image/jpeg", "x-upsert": "true"}
+            if auth:
+                h["Authorization"] = "Bearer " + key
+            req = urllib.request.Request(f"{base}/storage/v1/object/crowd/{fid}.jpg", data=img, method="POST", headers=h)
+            try:
+                urllib.request.urlopen(req, timeout=30).read()
+                done.add(fid); added += 1
+                break
+            except urllib.error.HTTPError as e:
+                if not auth and e.code in (400, 401, 403):
+                    continue
+                print(f"snapshot {fid} -> {e.code}: {e.read().decode()[:160]}", file=sys.stderr)
+                break
+    os.makedirs(WALLET_DIR, exist_ok=True)
+    open(done_path, "w").write("\n".join(sorted(done)))
+    print(f"crowd pictures saved: {len(done)} (new this run: {added})")
+
+
+def load_drops(now, private=None):
     grace = float(os.environ.get("HW_GRACE_MINUTES", "5")) * 60
     drops = []
-    for n, d in enumerate(json.loads(os.environ.get("HW_DROPS", "[]") or "[]"), 1):
+    sched = (private or {}).get("schedule") or os.environ.get("HW_DROPS", "[]") or "[]"
+    for n, d in enumerate(json.loads(sched), 1):
         opens = ts(d["opens"])
         closes = opens + float(d.get("minutes", 60)) * 60
         drops.append({"id": d["id"], "n": n, "code": norm(d["code"]), "opens": opens,
@@ -212,11 +279,23 @@ def main():
         if not c.get("time") and tip:
             c["time"] = now - (tip - c["height"]) * 75
 
-    drops = load_drops(now)
+    private = load_private()
+    if not DRY and os.environ.get("HW_SKIP_SNAPSHOT") != "1":
+        try:
+            snapshot_crowd()
+        except Exception as e:
+            print("snapshot failed:", e, file=sys.stderr)
+    drops = load_drops(now, private)
     by_code = {d["code"]: d for d in drops}
     answers = {k.lower(): norm(v) for k, v in json.loads(os.environ.get("HW_ANSWERS", "{}") or "{}").items()}
 
     rounds = {} if DRY else {r["id"]: r for r in supa("GET", "witness_rounds?select=*")}
+    # The game begins by itself when the doors close (no one has to flip a switch at midnight).
+    begins = private.get("season_opens")
+    if not DRY and begins and now >= ts(begins) and not (rounds.get("drops") or {}).get("is_open"):
+        supa("PATCH", "witness_rounds?id=eq.drops", {"is_open": True, "opened_at": begins}, "return=minimal")
+        rounds["drops"] = {**(rounds.get("drops") or {}), "is_open": True, "opened_at": begins}
+        print("the doors have closed: the game has begun")
     # While the season switch is off, nothing is published and no drop is live, whatever the schedule says.
     if not DRY and not (rounds.get("drops") or {}).get("is_open"):
         drops, by_code = [], {}
@@ -233,8 +312,29 @@ def main():
     elif season_start is not None:
         found = [c for c in found if c["time"] >= season_start]
 
+    witness = (private.get("witness") or "").strip().lower()
+    min_catches = int(private.get("min_catches") or 0)
     proofs, payouts, caught, rank = [], [], set(), {}
+    guessed = set()
     for c in found:
+        if c.get("accuse"):
+            pid = player_id(c["reply"]) if c["reply"] else None
+            if not pid or "accuse" not in rounds and not DRY:
+                continue
+            first = pid not in guessed
+            guessed.add(pid)
+            n_caught = sum(1 for (p, _) in caught if p == pid)
+            ok = bool(first and witness and c["accuse"] == witness and n_caught >= min_catches)
+            pos = None
+            if ok:
+                rank["accuse"] = rank.get("accuse", 0) + 1
+                pos = rank["accuse"]
+            proofs.append({"txid": c["txid"], "round_id": "accuse", "seat": c["seat"], "height": c["height"],
+                           "ok": ok, "rank": pos, "player": pid})
+            print(f"  guess at block {c['height']}: {'first guess' if first else 'extra guess, ignored'}, {'right' if ok else 'not right'}")
+            if c["reply"]:
+                payouts.append({"txid": c["txid"], "reply_to": c["reply"]})
+            continue
         code = norm(c["answer"])
         d = by_code.get(code)
         pid = player_id(c["reply"]) if c["reply"] else None
