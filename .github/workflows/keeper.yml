@@ -68,7 +68,7 @@ jobs:
             python3 reader/read_claims.py || echo "read $i failed; trying again next round"
             echo "::endgroup::"
             spent=$(( $(date +%s) - start ))
-            [ "$i" -lt "$ROUNDS" ] && sleep $(( spent < 300 ? 300 - spent : 5 ))
+            if [ "$i" -lt "$ROUNDS" ]; then sleep $(( spent < 300 ? 300 - spent : 5 )); fi
           done
 
       - name: Save view-only wallet
