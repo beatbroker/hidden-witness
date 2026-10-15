@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>THE HIDDEN WITNESS</title>
-<!-- v21: the hunt (clues, crossing off, one sealed guess) · source: github.com/beatbroker/hidden-witness -->
+<!-- v22: sealed guesses, private join order · source: github.com/beatbroker/hidden-witness -->
 <meta name="description" content="Somewhere in this crowd is a witness. A Zcash portal by Berlin Studios for the Zcash community.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -227,7 +227,7 @@
       <div class="step on"><span class="n">01</span><h3>Take a seat</h3><p>Add your X handle. Your face joins the crowd and you get a numbered seat card. It's free. Only seated players can play.</p><span class="tag">Open now</span></div>
       <div class="step"><span class="n">02</span><h3>The doors close</h3><p>On Halloween, October 31, or sooner if all 1,000 seats fill. The game begins the moment the doors close. No new players after that.</p><span class="tag" id="stepLeft">&hellip; seats left</span></div>
       <div class="step"><span class="n">03</span><h3>Seven clues</h3><p>Seven clues drop on <a href="https://x.com/chrisberlin" target="_blank" rel="noopener">@chrisberlin</a> at odd hours, marked &#8982;. Each one describes the witness. Each lives 60 minutes, then it's gone forever. Use them to cross faces off the crowd below.</p><span class="tag">Watch for &#8982;</span></div>
-      <div class="step prize"><span class="n">04</span><h3>Name the witness</h3><p>When you know, make your guess. One guess per player, sealed so no one can see it or copy it. The first right answer wins the blind bounty.</p><span class="tag">One guess</span></div>
+      <div class="step prize"><span class="n">04</span><h3>Name the witness</h3><p>When you know, make your guess. One guess per player, sealed so no one can see it or copy it. It counts if you caught at least 3 of the 7 clues. Every guess stays sealed until the last clue's hour ends. Then the first right answer wins the blind bounty.</p><span class="tag">One guess</span></div>
     </div>
     <div class="needs">
       <p><b>What you need.</b> A seat costs nothing. To catch a clue or make your guess you send a shielded Zcash message from a Zcash wallet such as Zashi or Zingo. Each one carries a tiny amount, 0.0001 ZEC, plus your wallet's network fee. That's what makes it private and timestamped by the blockchain.</p>
@@ -309,6 +309,7 @@
         <div class="guessbox" id="guessBox" hidden>
           <h3 class="roundname">Your guess</h3>
           <p class="sub" id="guessHelp">Cross faces off the crowd until one is left. That face becomes your guess.</p>
+          <p class="sub">Your guess counts if you caught at least 3 of the 7 clues with the same shielded address. Guesses stay sealed until the last clue's hour ends.</p>
           <div class="guessface" id="guessFace" hidden><div class="face" id="guessPic"></div><p id="guessName"></p></div>
           <div class="row"><button class="b solid" id="guessBtn" type="button" disabled>Seal my guess</button></div>
           <p class="msg" id="guessMsg" aria-live="polite"></p>
@@ -555,6 +556,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     SUPABASE_URL: "https://mrcbwfenysqmpvbxwemo.supabase.co",
     SUPABASE_ANON_KEY: "sb_publishable_feh_JcKfIJy1OAwr6mBtoA_hMOBMX8W",
     TABLE: "witnesses",
+    CROWD: "crowd",          // public view: faces only, no join times
     hidden: [],               // handles to hide from the crowd (moderation)
     // Easter egg 1: click the redaction bar 3 times to reveal this line.
     nextAnnouncement: "Clues won't be announced. They arrive at odd hours, carrying a single mark: \u2316. Miss one, and it won't be repeated. Watch closely.",     // e.g. "The next announcement: Sep 30, 7 PM PT." Empty = the bar stays shut.
@@ -703,7 +705,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const base = SEED.filter(x => !CONFIG.hidden.includes(x.h.toLowerCase())).map(x => ({ h: x.h, a: x.a, s: false }));
     let joined = [];
     try {
-      const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${CONFIG.TABLE}?select=handle,shielded,avatar&order=ts.asc&limit=2000`, { headers: H() });
+      const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${CONFIG.CROWD}?select=handle,shielded,avatar&limit=2000`, { headers: H() });
       if (r.ok) joined = (await r.json()).filter(x => okAvatar(x.avatar)).map(x => ({ h: x.handle || "", a: x.avatar, s: !!x.shielded }));
     } catch (e) {}
     const seen = new Set(base.map(x => x.h.toLowerCase()));
@@ -764,15 +766,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   // Seats are numbered in sign-up order from the database, one seat per person (a repeat join keeps the first seat).
   // Seat cards started at #085 (the crowd showed 84 when they went live), so seat = 84 + your place among joins since then.
   const SEAT_BASE = 84, SEAT_FROM = "2026-09-29T01:10:00Z";
-  async function seatFor(avatar){
+  async function seatCount(){
     try {
-      const u = CONFIG.SUPABASE_URL + "/rest/v1/" + CONFIG.TABLE;
-      const r = await fetch(u + "?select=avatar,ts&ts=gt." + SEAT_FROM + "&order=ts.asc&limit=5000", { headers: H() });
+      const r = await fetch(CONFIG.SUPABASE_URL + "/rest/v1/rpc/seats_taken", { method: "POST", headers: { ...H(), "Content-Type": "application/json" }, body: "{}" });
       if (!r.ok) return null;
-      const order = [];
-      (await r.json()).forEach(x => { if (x.avatar && !order.includes(x.avatar)) order.push(x.avatar); });
-      const i = order.indexOf(avatar);
-      return i < 0 ? null : SEAT_BASE + i + 1;
+      const n = await r.json();
+      return typeof n === "number" ? SEAT_BASE + n : null;
     } catch (e) { return null; }
   }
   (async () => {
@@ -780,7 +779,6 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       const saved = JSON.parse(localStorage.getItem(SEAT_STORE) || "null");
       if (!saved) return;
       let seat = saved.seat;
-      if (saved.avatar){ const fresh = await seatFor(saved.avatar); if (fresh) seat = fresh; }
       if (seat) showSeat(seat, !!saved.shielded);
     } catch (e) {}
   })();
@@ -949,9 +947,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   const fullMsg = () => Date.now() >= CLOSE_AT ? "The doors closed on Halloween. Only the crowd plays now." : "The crowd is full. All 1,000 seats are taken.";
   async function refreshSeats(){
     try {
-      const r = await fetch(CONFIG.SUPABASE_URL + "/rest/v1/" + CONFIG.TABLE + "?select=avatar&ts=gt." + SEAT_FROM + "&order=ts.asc&limit=5000", { headers: H() });
-      if (!r.ok) return;
-      seatsTaken = SEAT_BASE + new Set((await r.json()).map(x => x.avatar).filter(Boolean)).size;
+      const n = await seatCount();
+      if (n == null) return;
+      seatsTaken = n;
       $("count").textContent = Math.min(seatsTaken, SEAT_CAP).toLocaleString("en-US") + " of 1,000 seats taken";
       paintMeter(seatsTaken);
       if (crowdFull()){ const m = $("joinMsg"); if (!already) m.textContent = fullMsg(); }
@@ -1009,8 +1007,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       try { localStorage.setItem(STORE, "1"); } catch (e) {}
       const p = { h: row.handle || "", a: row.avatar, s: shielded };
       people.unshift(p); render(p);
-      const seat = (await seatFor(row.avatar)) || people.length;
-      refreshSeats();
+      await refreshSeats();
+      const seat = seatsTaken || people.length;
       if (seat > SEAT_CAP){ msg.textContent = "The crowd filled up just before you. All 1,000 seats are taken."; msg.classList.add("err"); return; }
       if (seat){
         try { localStorage.setItem(SEAT_STORE, JSON.stringify({ seat, shielded, avatar: row.avatar })); } catch (e) {}

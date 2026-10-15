@@ -316,24 +316,9 @@ def main():
     min_catches = int(private.get("min_catches") or 0)
     proofs, payouts, caught, rank = [], [], set(), {}
     guessed = set()
+    guesses = [c for c in found if c.get("accuse")]
     for c in found:
         if c.get("accuse"):
-            pid = player_id(c["reply"]) if c["reply"] else None
-            if not pid or "accuse" not in rounds and not DRY:
-                continue
-            first = pid not in guessed
-            guessed.add(pid)
-            n_caught = sum(1 for (p, _) in caught if p == pid)
-            ok = bool(first and witness and c["accuse"] == witness and n_caught >= min_catches)
-            pos = None
-            if ok:
-                rank["accuse"] = rank.get("accuse", 0) + 1
-                pos = rank["accuse"]
-            proofs.append({"txid": c["txid"], "round_id": "accuse", "seat": c["seat"], "height": c["height"],
-                           "ok": ok, "rank": pos, "player": pid})
-            print(f"  guess at block {c['height']}: {'first guess' if first else 'extra guess, ignored'}, {'right' if ok else 'not right'}")
-            if c["reply"]:
-                payouts.append({"txid": c["txid"], "reply_to": c["reply"]})
             continue
         code = norm(c["answer"])
         d = by_code.get(code)
@@ -367,6 +352,32 @@ def main():
                 pos = rank[rnd]
             proofs.append({"txid": c["txid"], "round_id": rnd if (r or DRY) and rnd else None, "seat": c["seat"],
                            "height": c["height"], "ok": ok, "rank": pos, "player": pid})
+        if c["reply"]:
+            payouts.append({"txid": c["txid"], "reply_to": c["reply"]})
+
+    # Guesses are judged after every catch is counted, and stay sealed until reveal_at:
+    # until then the public board and the public logs say only that a guess arrived.
+    reveal_at = ts(private["reveal_at"]) if private.get("reveal_at") else None
+    revealed = DRY or (reveal_at is not None and now >= reveal_at)
+    for c in sorted(guesses, key=lambda g: g["height"]):
+        pid = player_id(c["reply"]) if c["reply"] else None
+        if not pid or "accuse" not in rounds and not DRY:
+            continue
+        if reveal_at is not None and c["time"] > reveal_at:
+            continue  # guesses close when the last clue's hour ends
+        first = pid not in guessed
+        guessed.add(pid)
+        n_caught = sum(1 for (p, _) in caught if p == pid)
+        ok = bool(first and witness and c["accuse"] == witness and n_caught >= min_catches)
+        pos = None
+        if ok:
+            rank["accuse"] = rank.get("accuse", 0) + 1
+            pos = rank["accuse"]
+        if not revealed:
+            ok, pos = False, None
+        proofs.append({"txid": c["txid"], "round_id": "accuse", "seat": c["seat"], "height": c["height"],
+                       "ok": ok, "rank": pos, "player": pid})
+        print(f"  guess at block {c['height']}: sealed")
         if c["reply"]:
             payouts.append({"txid": c["txid"], "reply_to": c["reply"]})
 
