@@ -21,5 +21,5 @@ grant execute on function public.seats_taken() to anon, authenticated;
 
 commit;
 
--- Step 2, once the page reads from the view: the raw table can be written to, never read.
---   revoke select on public.witnesses from anon, authenticated;
+-- Step 2 (done after v22 went live): the raw table can be written to, never read.
+revoke select on public.witnesses from anon, authenticated;
