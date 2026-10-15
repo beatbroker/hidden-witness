@@ -216,11 +216,14 @@ def main():
     by_code = {d["code"]: d for d in drops}
     answers = {k.lower(): norm(v) for k, v in json.loads(os.environ.get("HW_ANSWERS", "{}") or "{}").items()}
 
+    rounds = {} if DRY else {r["id"]: r for r in supa("GET", "witness_rounds?select=*")}
+    # While the season switch is off, nothing is published and no drop is live, whatever the schedule says.
+    if not DRY and not (rounds.get("drops") or {}).get("is_open"):
+        drops, by_code = [], {}
     # Publish only the drops that have already opened: nothing public reveals a drop before it lands.
     round_rows = [{"id": d["id"], "label": d["label"], "is_open": d["opens"] <= now < d["closes"],
                    "opened_at": iso(d["opens"]), "closed_at": iso(d["closes"])}
                   for d in drops if d["opens"] <= now]
-    rounds = {} if DRY else {r["id"]: r for r in supa("GET", "witness_rounds?select=*")}
 
     # Season gate: nothing counts, or even shows, from before the season opened (tests, rehearsals).
     season = rounds.get("drops") or {}
