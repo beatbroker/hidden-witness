@@ -107,6 +107,16 @@
   .pay button.b{padding:6px 10px;font-size:.72rem}
   .note{margin:14px 0 0;font-size:.82rem;color:var(--ink-2);max-width:60ch}
   .boardstats{margin:0 0 12px;font-size:.9rem}
+  .details{margin-top:22px;border-top:1px solid var(--line);padding-top:18px}
+  .details[hidden]{display:none}
+  .keyline code{font-family:var(--mono);font-size:.8rem;overflow-wrap:anywhere}
+  .look{position:fixed;inset:0;z-index:60;background:rgba(12,12,12,.94);display:grid;place-items:center;align-content:center;gap:16px;padding:16px}
+  .look[hidden]{display:none}
+  .look figure{margin:0;text-align:center}
+  .look img{display:block;width:min(86vw,70vh,520px);height:auto;image-rendering:pixelated;filter:grayscale(1) contrast(1.35) brightness(1.08)}
+  .look figcaption{margin-top:10px;color:#e8e6e0;font-size:.84rem;letter-spacing:.06em}
+  .look .b.solid{background:#e8e6e0;color:#141414;border-color:#e8e6e0}
+  .crowd.looking .face{cursor:zoom-in}
   .bh{margin:18px 0 6px;font-family:var(--display);font-weight:400;font-size:.9rem;letter-spacing:.06em}
   .board li.live b{animation:none}
   .board li.live{background:var(--ink);color:var(--paper);padding-left:8px;padding-right:8px}
@@ -226,27 +236,30 @@
     <div class="steps">
       <div class="step on"><span class="n">01</span><h3>Take a seat</h3><p>Add your X handle. Your face joins the crowd and you get a numbered seat card. It's free. Only seated players can play.</p><span class="tag">Open now</span></div>
       <div class="step"><span class="n">02</span><h3>The doors close</h3><p>On Halloween, October 31, or sooner if all 1,000 seats fill. The game begins the moment the doors close. No new players after that.</p><span class="tag" id="stepLeft">&hellip; seats left</span></div>
-      <div class="step"><span class="n">03</span><h3>Seven clues</h3><p>Seven clues drop on <a href="https://x.com/chrisberlin" target="_blank" rel="noopener">@chrisberlin</a> at odd hours, marked &#8982;. Each one describes the witness. Each lives 60 minutes, then it's gone forever. Use them to cross faces off the crowd below.</p><span class="tag">Watch for &#8982;</span></div>
+      <div class="step"><span class="n">03</span><h3>Seven clues</h3><p>Seven clues drop on <a href="https://x.com/chrisberlin" target="_blank" rel="noopener">@chrisberlin</a> at odd hours, marked &#8982;. Each one describes the witness. Each lives 60 minutes, then it's gone forever. Use them to cross faces off the crowd below. Every clue you catch also unlocks a private detail about the witness, for your eyes only.</p><span class="tag">Watch for &#8982;</span></div>
       <div class="step prize"><span class="n">04</span><h3>Name the witness</h3><p>When you know, make your guess. One guess per player, sealed so no one can see it or copy it. It counts if you caught at least 3 of the 7 clues. Every guess stays sealed until the last clue's hour ends. Then the first right answer wins the blind bounty.</p><span class="tag">One guess</span></div>
     </div>
     <div class="needs">
       <p><b>What you need.</b> A seat costs nothing. To catch a clue or make your guess you send a shielded Zcash message from a Zcash wallet such as Zashi or Zingo. Each one carries a tiny amount, 0.0001 ZEC, plus your wallet's network fee. That's what makes it private and timestamped by the blockchain.</p>
       <p><b>Catching a clue.</b> Every clue carries a code. Send that code within the hour to prove you were there. Your catches show on the board.</p>
+      <p><b>Your private details.</b> Some faces in the crowd look almost exactly like the witness. The clues on X will only get you close. Each catch unlocks one detail that tells the lookalikes apart, and only you can read yours. Catch more, and fewer faces are left.</p>
     </div>
   </section>
 
   <section aria-labelledby="crowdHead">
     <h2 id="crowdHead">The crowd</h2>
-    <p class="sub">These are the players. The first faces walked through NULLIFIER. Every face after that took a seat. One of them is the witness.</p>
+    <p class="sub">These are the players. The first faces walked through NULLIFIER. Every face after that took a seat. Lately, faces nobody invited keep sitting down. They look familiar. One face in this crowd is the witness.</p>
     <p class="count" id="count"></p>
     <div class="crowd-tools">
       <button class="b solid" id="huntBtn" type="button" aria-pressed="false">Cross off faces</button>
+      <button class="b" id="lookBtn" type="button" aria-pressed="false">Look closer</button>
       <button class="b" id="lightBtn" type="button" aria-pressed="false">Search with a flashlight</button>
       <button class="b" id="huntReset" type="button" hidden>Bring everyone back</button>
       <span class="left" id="huntLeft"></span>
     </div>
     <div class="crowd-wrap" id="crowdWrap"><div class="crowd" id="crowd"></div></div>
     <p class="crowd-note" id="crowdNote" aria-live="polite"></p>
+    <div class="look" id="look" hidden role="dialog" aria-modal="true" aria-label="A closer look"><figure><img id="lookImg" alt=""><figcaption id="lookCap"></figcaption></figure><button class="b solid" id="lookClose" type="button">Close</button></div>
   </section>
 
   <section aria-labelledby="joinHead">
@@ -313,6 +326,13 @@
           <div class="guessface" id="guessFace" hidden><div class="face" id="guessPic"></div><p id="guessName"></p></div>
           <div class="row"><button class="b solid" id="guessBtn" type="button" disabled>Seal my guess</button></div>
           <p class="msg" id="guessMsg" aria-live="polite"></p>
+        </div>
+        <div class="details" id="detailsBox" hidden>
+          <h3 class="roundname">Your private details</h3>
+          <p class="sub">Every clue you catch unlocks one detail about the witness. Only you can read yours. They show here a few minutes after your catch is mined.</p>
+          <ol class="board" id="myDetails"><li class="empty"><span>None yet. Catch a clue to unlock one.</span></li></ol>
+          <p class="dim keyline">Your key: <code id="myKey"></code>. It rides inside every message you seal from this browser, and it's what unlocks your details. To read them on another device, use the same key there.</p>
+          <div class="row"><input type="text" id="keyIn" maxlength="24" spellcheck="false" placeholder="Paste a saved key"><button class="b" id="keyUse" type="button">Use this key</button></div>
         </div>
         <div class="sealed" id="sealed" hidden>
           <h3 id="sealedHead">Sealed. Now send it.</h3>
@@ -571,6 +591,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   };
   // The first faces: everyone who left a handle on NULLIFIER.
   const SEED = [{"h":"A2E_A2E","a":"https://pbs.twimg.com/profile_images/2098407602841661440/1NvEiiDC_200x200.png"},{"h":"CryptoRubber","a":"https://pbs.twimg.com/profile_images/2101461395065958401/5Gm1cxsu_200x200.jpg"},{"h":"Vortiqal","a":"https://pbs.twimg.com/profile_images/2103988904776888320/2vBhfPXE_200x200.jpg"},{"h":"kacchanr_","a":"https://pbs.twimg.com/profile_images/2092326407011532800/LdL1FcRO_200x200.jpg"},{"h":"bella_quack","a":"https://pbs.twimg.com/profile_images/1996986174112780289/ORyoga4M_200x200.jpg"},{"h":"0xdort","a":"https://pbs.twimg.com/profile_images/2099314158944538626/_BZUvWmP_200x200.jpg"},{"h":"3nergywhiz","a":"https://pbs.twimg.com/profile_images/2101167360874864640/B8tLdr8a_200x200.jpg"},{"h":"onetonwontonmon","a":"https://pbs.twimg.com/profile_images/2104023038312562688/fBYIWlxZ_200x200.jpg"},{"h":"VanWin408","a":"https://pbs.twimg.com/profile_images/2097414144488292352/vTcGGn6x_200x200.jpg"},{"h":"james76n","a":"https://pbs.twimg.com/profile_images/1374595602852503553/3lDDkkrB_200x200.jpg"},{"h":"velucxa","a":"https://pbs.twimg.com/profile_images/2100715441375301632/hlxEef3F_200x200.jpg"},{"h":"frankshielded","a":"https://pbs.twimg.com/profile_images/2100750407265890304/94Oq6CRO_200x200.jpg"},{"h":"LymLegendary","a":"https://pbs.twimg.com/profile_images/2101154236897918976/boSaxN1H_200x200.jpg"},{"h":"mfBRAT_eth","a":"https://pbs.twimg.com/profile_images/2022691693410308096/uzjXiDGK_200x200.jpg"},{"h":"Classicmantweet","a":"https://pbs.twimg.com/profile_images/2102428025945997312/oFqPyNoB_200x200.png"},{"h":"acdmoon","a":"https://pbs.twimg.com/profile_images/2103150097441902592/NTab_dr8_200x200.jpg"},{"h":"hqh7190","a":"https://pbs.twimg.com/profile_images/2101192030319992832/Eg98if-9_200x200.jpg"},{"h":"JayZcashmoney","a":"https://pbs.twimg.com/profile_images/2102849474246696960/WyGOBdh0_200x200.jpg"},{"h":"extropic_vc","a":"https://pbs.twimg.com/profile_images/2103075987420504064/z5F6CkiR_200x200.jpg"},{"h":"nosuke_crypto","a":"https://pbs.twimg.com/profile_images/2104484611854413824/xdiup8pF_200x200.jpg"},{"h":"JohnHDark","a":"https://pbs.twimg.com/profile_images/2101654032733372417/KkjVIpnZ_200x200.jpg"},{"h":"Cryptodonpac","a":"https://pbs.twimg.com/profile_images/2101932931887312896/gGOtQekg_200x200.jpg"},{"h":"kryptoleary","a":"https://pbs.twimg.com/profile_images/2101515065669115904/dFQP1gOJ_200x200.jpg"},{"h":"RockieRockie","a":"https://pbs.twimg.com/profile_images/2066825469744291840/Sdw-LA5N_200x200.jpg"},{"h":"tradingbubblesz","a":"https://pbs.twimg.com/profile_images/2103161484402421760/ogolKSIZ_200x200.jpg"},{"h":"PoisonZEA","a":"https://pbs.twimg.com/profile_images/2103825665904754688/ofhUO_hm_200x200.jpg"},{"h":"earthbound1210","a":"https://pbs.twimg.com/profile_images/2104362056086614016/aRv9CnhX_200x200.jpg"},{"h":"JAcksoxx_x","a":"https://pbs.twimg.com/profile_images/2101333768175042560/UT7HBqpp_200x200.jpg"},{"h":"Stephenhup8xb","a":"https://pbs.twimg.com/profile_images/2101749374149947392/JcYRr_KM_200x200.jpg"},{"h":"NAFOMO94","a":"https://pbs.twimg.com/profile_images/2100776869134036992/UWp8HXI1_200x200.jpg"},{"h":"richpinky3","a":"https://pbs.twimg.com/profile_images/2026061210396024832/wNoNqj4I_200x200.jpg"},{"h":"Coinberry","a":"https://pbs.twimg.com/profile_images/2102612365439356928/s6Xckuf8_200x200.jpg"},{"h":"quaxiquaxi","a":"https://pbs.twimg.com/profile_images/2082022720930283520/9s9UCg3u_200x200.jpg"},{"h":"panther5btc","a":"https://pbs.twimg.com/profile_images/2101862092282241024/XGtIg1oU_200x200.jpg"},{"h":"m44444nu","a":"https://pbs.twimg.com/profile_images/2034751224063352832/rO18OQbJ_200x200.jpg"},{"h":"Cozecamp","a":"https://pbs.twimg.com/profile_images/2103045617996152832/Ya38mfYe_200x200.jpg"},{"h":"giamdox","a":"https://pbs.twimg.com/profile_images/2102130917485826048/E7D1zMFt_200x200.jpg"},{"h":"OeverYon","a":"https://pbs.twimg.com/profile_images/2101226518978457600/MrP7jlzA_200x200.jpg"},{"h":"0xnickhil","a":"https://pbs.twimg.com/profile_images/2101645844978208768/Yx3WxCIe_200x200.jpg"},{"h":"mumbles_c","a":"https://pbs.twimg.com/profile_images/2103786908677726208/COaUynlE_200x200.jpg"},{"h":"Nobita_130","a":"https://pbs.twimg.com/profile_images/2100649225231233024/IhWu_p7j_200x200.jpg"},{"h":"eduardkovalenko","a":"https://pbs.twimg.com/profile_images/2102819170861674496/e5rbIWQB_200x200.jpg"},{"h":"Nah_Dud3","a":"https://pbs.twimg.com/profile_images/2104071062883618816/k1uh6ZAj_200x200.jpg"},{"h":"Karanxbt","a":"https://pbs.twimg.com/profile_images/2102454768044212224/X308qtHh_200x200.jpg"},{"h":"kimispacex","a":"https://pbs.twimg.com/profile_images/2101922701875073024/5AnladVz_200x200.jpg"},{"h":"hialdu_","a":"https://pbs.twimg.com/profile_images/2100662701144051712/5xgXC9gU_200x200.jpg"},{"h":"Jyungrighthere","a":"https://pbs.twimg.com/profile_images/2104081550401052672/14fGH6Yp_200x200.jpg"},{"h":"mint_boar","a":"https://pbs.twimg.com/profile_images/2101990378291208192/1NkRz7t9_200x200.jpg"},{"h":"zukoushitu","a":"https://pbs.twimg.com/profile_images/2103703487955750912/gnmTXpBN_200x200.jpg"},{"h":"Abol02","a":"https://pbs.twimg.com/profile_images/2102139499413131264/Nki_VhIv_200x200.jpg"},{"h":"ajcurated","a":"https://pbs.twimg.com/profile_images/2103938468887822336/abuyCOqd_200x200.jpg"},{"h":"blue","a":"https://pbs.twimg.com/profile_images/1891491438673694721/_xCEKiX__200x200.jpg"},{"h":"pnlmaxxing","a":"https://pbs.twimg.com/profile_images/2103803126302044160/SIaLQJbg_200x200.jpg"},{"h":"kaiaisol","a":"https://pbs.twimg.com/profile_images/2091121275552792576/Wn1jpp55_200x200.jpg"},{"h":"0xKDOT","a":"https://pbs.twimg.com/profile_images/2097358991667978240/NQKoo4Us_200x200.jpg"},{"h":"alenque82","a":"https://pbs.twimg.com/profile_images/2100752992635068416/Qg150Ki__200x200.jpg"},{"h":"lovechao31","a":"https://pbs.twimg.com/profile_images/2100752404740550656/o18FBbjI_200x200.jpg"},{"h":"ondrej0x","a":"https://pbs.twimg.com/profile_images/2100644970025590785/wxQEFAaQ_200x200.jpg"},{"h":"BrightAvian","a":"https://pbs.twimg.com/profile_images/2018522155625943040/sTwEwkjS_200x200.jpg"},{"h":"MrPixeleth_","a":"https://pbs.twimg.com/profile_images/2098334067821314050/danjc-mv_200x200.jpg"},{"h":"planktoshi","a":"https://pbs.twimg.com/profile_images/1967626427064365057/9K8Abqi9_200x200.jpg"},{"h":"arrowinweb3","a":"https://pbs.twimg.com/profile_images/2102313304345792512/FNTBnbH3_200x200.jpg"},{"h":"oXtaiylor","a":"https://pbs.twimg.com/profile_images/2077198159831506944/qw_KrLkS_200x200.jpg"},{"h":"kh4n92","a":"https://pbs.twimg.com/profile_images/2000232242279284746/i_NFrNQi_200x200.jpg"},{"h":"happy520_yy","a":"https://pbs.twimg.com/profile_images/2100803205445865472/hfGBsp-H_200x200.jpg"},{"h":"0xborder","a":"https://pbs.twimg.com/profile_images/2101462121024520192/uM57iJGh_200x200.jpg"},{"h":"TheClonesNFT","a":"https://pbs.twimg.com/profile_images/1559525505891721216/EKYB9fJH_200x200.jpg"},{"h":"F0llow_the_sun","a":"https://pbs.twimg.com/profile_images/2102107294137819136/ngvfJJSc_200x200.jpg"},{"h":"Yu_Ayato","a":"https://pbs.twimg.com/profile_images/2048927147730124800/qCNcZHDO_200x200.jpg"},{"h":"Mahno_txt","a":"https://pbs.twimg.com/profile_images/1938987176055693313/m7MFJlns_200x200.jpg"},{"h":"warmarc","a":"https://pbs.twimg.com/profile_images/1892969755738284032/5quP_pD3_200x200.jpg"},{"h":"thebcc_","a":"https://pbs.twimg.com/profile_images/2000896384766238726/NcpGd3hr_200x200.jpg"},{"h":"Dapp_Boy","a":"https://pbs.twimg.com/profile_images/2103662644695646208/CazblSvn_200x200.jpg"},{"h":"MetageistVR","a":"https://pbs.twimg.com/profile_images/2008466027378601984/3liuq1Zd_200x200.jpg"},{"h":"bv99z","a":"https://pbs.twimg.com/profile_images/2100643710744608770/Db8skSc9_200x200.jpg"},{"h":"stenz0rdj","a":"https://pbs.twimg.com/profile_images/2102447928950554626/kbtfuQgu_200x200.jpg"},{"h":"cyclefail","a":"https://pbs.twimg.com/profile_images/2100652208895221760/MsyV6wtv_200x200.jpg"},{"h":"FullPlateFamily","a":"https://pbs.twimg.com/profile_images/2103258844587606017/4_FS5rFd_200x200.jpg"}];
+  // Faces nobody invited. They sit down one at a time before the doors close.
+  const HOUSE = [{"a":"house/6cc2066a.png","at":"2026-10-22T18:50:00-07:00"},{"a":"house/ea2d3906.png","at":"2026-10-23T18:12:00-07:00"},{"a":"house/bfa2925a.png","at":"2026-10-24T10:44:00-07:00"},{"a":"house/f52f392e.png","at":"2026-10-25T17:48:00-07:00"},{"a":"house/b9147443.png","at":"2026-10-26T09:31:00-07:00"},{"a":"house/2d5e91ca.png","at":"2026-10-27T16:17:00-07:00"},{"a":"house/64735454.png","at":"2026-10-28T15:13:00-07:00"},{"a":"house/c31a945b.png","at":"2026-10-29T20:39:00-07:00"}];
 
   const $ = id => document.getElementById(id);
   const H = () => ({ apikey: CONFIG.SUPABASE_ANON_KEY });
@@ -602,7 +624,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const b = document.createElement("button");
     b.type = "button";
     b.className = "face" + (p.s ? " shielded" : "") + (extra ? " " + extra : "");
-    b.setAttribute("aria-label", p.s ? "A shielded face" : "@" + p.h);
+    b.setAttribute("aria-label", p.house ? "A face with no name" : p.s ? "A shielded face" : "@" + p.h);
     const img = document.createElement("img");
     const fid = faceId(p.a); b.dataset.fid = fid;
     if (crossed.has(fid)) b.classList.add("out");
@@ -611,9 +633,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     img.onerror = () => { if (!img.dataset.snap){ img.dataset.snap = "1"; img.src = snapUrl(fid); } else { b.remove(); updateHunt(); } };
     b.appendChild(img);
     b.addEventListener("click", () => {
+      if (looking){ openLook(img.src, b.getAttribute("aria-label")); return; }
       if (hunting){ toggleCross(fid, b); return; }
       if (b.dataset.door && CONFIG.doorUrl){ window.open(CONFIG.doorUrl, "_blank", "noopener"); return; }
-      $("crowdNote").textContent = (p.s ? "Shielded. " : "@" + p.h + ". ") + "Is it the witness? Press \u201cCross off faces\u201d to start ruling people out.";
+      $("crowdNote").textContent = (p.house ? "No name. Nobody invited this one. " : p.s ? "Shielded. " : "@" + p.h + ". ") + "Is it the witness? Press \u201cCross off faces\u201d to start ruling people out.";
     });
     return b;
   }
@@ -630,7 +653,27 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   /* hunt buttons */
+  let looking = false;
+  function setLooking(on){
+    looking = on;
+    $("lookBtn").setAttribute("aria-pressed", String(on));
+    $("lookBtn").textContent = on ? "Done looking" : "Look closer";
+    $("crowd").classList.toggle("looking", on);
+    if (on) $("crowdNote").textContent = "Tap a face to see it up close.";
+  }
+  function openLook(src, label){
+    $("lookImg").src = src; $("lookCap").textContent = label || "";
+    $("look").hidden = false; $("lookClose").focus();
+  }
+  $("lookClose").addEventListener("click", () => { $("look").hidden = true; });
+  $("look").addEventListener("click", e => { if (e.target.id === "look") $("look").hidden = true; });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") $("look").hidden = true; });
+  $("lookBtn").addEventListener("click", () => {
+    if (hunting) $("huntBtn").click();
+    setLooking(!looking);
+  });
   $("huntBtn").addEventListener("click", () => {
+    if (looking) setLooking(false);
     hunting = !hunting;
     $("huntBtn").setAttribute("aria-pressed", String(hunting));
     $("huntBtn").textContent = hunting ? "Done crossing off" : "Cross off faces";
@@ -710,8 +753,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     } catch (e) {}
     const seen = new Set(base.map(x => x.h.toLowerCase()));
     joined = joined.filter(x => x.s || !seen.has(x.h.toLowerCase()) && !CONFIG.hidden.includes(x.h.toLowerCase()));
-    people = shuffle(base.concat(joined));
+    const now = Date.now();
+    const house = HOUSE.filter(x => Date.parse(x.at) <= now).map(x => ({ h: "", a: x.a, s: false, house: true }));
+    people = shuffle(base.concat(joined, house));
     render();
+    const fresh = HOUSE.some(x => { const t = Date.parse(x.at); return t <= now && now - t < 864e5; });
+    if (fresh && now < CLOSE_AT) $("ticker").textContent = "Someone just sat down. They look familiar.";
   }
 
   /* easter egg 1: the redaction bar */
@@ -796,9 +843,22 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   const utf8Len = t => new TextEncoder().encode(t).length;
   const b64url = t => { let b = ""; new TextEncoder().encode(t).forEach(c => b += String.fromCharCode(c)); return btoa(b).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
   // One line, split with "|": some wallets flatten line breaks in memos.
+  /* your key: rides inside every catch, and unlocks your private details */
+  const KEY_STORE = "hidden_witness_key_v1";
+  const hex = b => [...b].map(x => x.toString(16).padStart(2, "0")).join("");
+  function myKey(){
+    let k = null;
+    try { k = localStorage.getItem(KEY_STORE); } catch (e) {}
+    if (!/^[0-9a-f]{24}$/.test(k || "")){
+      const b = new Uint8Array(12); crypto.getRandomValues(b); k = hex(b);
+      try { localStorage.setItem(KEY_STORE, k); } catch (e) {}
+    }
+    return k;
+  }
   function buildMemo(round, seat, answer, reply){
     const parts = [MEMO_TAG, "seat: " + seat, "code: " + answer.replace(/\|/g, " ")];
     if (reply) parts.push("reply: " + reply);
+    parts.push("key: " + myKey());
     return parts.join(" | ");
   }
   async function loadRounds(){
@@ -812,6 +872,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       $("doorShut").hidden = !!openRound;
       $("doorForm").hidden = !openRound;
       $("guessBox").hidden = !openRound;
+      $("detailsBox").hidden = !openRound;
       const drops = rows.filter(x => /^d\d+$/.test(x.id)).sort((a, b) => Date.parse(a.opened_at) - Date.parse(b.opened_at));
       window.__drops = drops;
       const live = drops.find(x => x.is_open && Date.parse(x.closed_at) > Date.now());
@@ -931,7 +992,47 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       }
     } catch (e) {}
   }
-  const refreshDoor = () => loadRounds().then(loadBoard);
+  async function loadDetails(){
+    if (!openRound) return;
+    const k = myKey(); $("myKey").textContent = k;
+    const drops = window.__drops || [];
+    if (!drops.length || !(window.crypto && crypto.subtle)) return;
+    try {
+      const enc = new TextEncoder(), tags = {};
+      for (const d of drops){
+        const h = new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode("hw-tag|" + k + "|" + d.id)));
+        tags[hex(h).slice(0, 32)] = d;
+      }
+      const r = await fetch(CONFIG.SUPABASE_URL + "/rest/v1/witness_whispers?select=tag,box&tag=in.(" + Object.keys(tags).join(",") + ")", { headers: H() });
+      if (!r.ok) return;
+      const rows = await r.json();
+      const hk = await crypto.subtle.importKey("raw", enc.encode(k), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+      const got = [];
+      for (const row of rows){
+        const d = tags[row.tag]; if (!d) continue;
+        const box = new Uint8Array((row.box.match(/../g) || []).map(x => parseInt(x, 16)));
+        const out = new Uint8Array(box.length);
+        for (let i = 0; i * 32 < box.length; i++){
+          const ks = new Uint8Array(await crypto.subtle.sign("HMAC", hk, enc.encode("hw-box|" + d.id + "|" + i)));
+          for (let j = 0; j < 32 && i * 32 + j < box.length; j++) out[i * 32 + j] = box[i * 32 + j] ^ ks[j];
+        }
+        got.push({ d, text: new TextDecoder().decode(out) });
+      }
+      const ol = $("myDetails"); ol.textContent = "";
+      if (!got.length){ const li = document.createElement("li"); li.className = "empty"; const sp = document.createElement("span"); sp.textContent = "None yet. Catch a clue to unlock one."; li.appendChild(sp); ol.appendChild(li); return; }
+      got.sort((a, b) => Date.parse(a.d.opened_at) - Date.parse(b.d.opened_at)).forEach(g => {
+        const li = document.createElement("li"), b = document.createElement("b"), sp = document.createElement("span");
+        b.textContent = "\u2316 " + g.d.label; sp.textContent = g.text; li.append(b, sp); ol.appendChild(li);
+      });
+    } catch (e) {}
+  }
+  $("keyUse").addEventListener("click", () => {
+    const v = ($("keyIn").value || "").trim().toLowerCase();
+    if (!/^[0-9a-f]{24}$/.test(v)){ $("keyIn").value = ""; $("keyIn").placeholder = "That isn't a key. It's 24 letters and numbers."; return; }
+    try { localStorage.setItem(KEY_STORE, v); } catch (e) {}
+    $("keyIn").value = ""; loadDetails();
+  });
+  const refreshDoor = () => loadRounds().then(loadBoard).then(loadDetails);
   refreshDoor(); prefillSeat();
   setInterval(() => { if (!document.hidden) refreshDoor(); }, 30000);
 

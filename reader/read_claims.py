@@ -89,7 +89,7 @@ def memo_text(b):
         return None
 
 
-FIELD_RE = re.compile(r"\b(round|seat|answer|code|accuse|reply)\s*[:=]\s*", re.I)
+FIELD_RE = re.compile(r"\b(round|seat|answer|code|accuse|reply|key)\s*[:=]\s*", re.I)
 
 
 def parse(text):
@@ -105,12 +105,14 @@ def parse(text):
         fields.setdefault(m.group(1).lower(), body[m.end():end].strip(" |\t"))
     seat = re.sub(r"\D", "", fields.get("seat", ""))[:4]
     reply = re.sub(r"\s+", "", fields.get("reply", ""))
+    key = re.sub(r"[^0-9a-f]", "", fields.get("key", "").lower())[:24]
     return {
         "round": re.sub(r"[^a-z0-9-]", "", fields.get("round", "").lower()),
         "seat": int(seat) if seat and 1 <= int(seat) <= 1000 else None,
         "answer": fields.get("code") or fields.get("answer", ""),
         "accuse": re.sub(r"[^0-9a-f]", "", fields.get("accuse", "").lower())[:8],
         "reply": reply if UA_RE.match(reply) else None,
+        "key": key if re.fullmatch(r"[0-9a-f]{24}", key) else None,
     }
 
 
@@ -196,6 +198,16 @@ def face_id(url):
         h ^= ord(ch)
         h = (h * 0x01000193) & 0xFFFFFFFF
     return f"{h:08x}"
+
+
+def whisper(key, drop_id, text):
+    """A private detail sealed for one player: only the key in their own memo opens it.
+    tag = first 32 hex of SHA-256("hw-tag|key|drop"); box = text XOR HMAC-SHA256(key, "hw-box|drop|i") blocks."""
+    tag = hashlib.sha256(f"hw-tag|{key}|{drop_id}".encode()).hexdigest()[:32]
+    data = text.encode("utf-8")
+    stream = b"".join(hmac.new(key.encode(), f"hw-box|{drop_id}|{i}".encode(), hashlib.sha256).digest()
+                      for i in range((len(data) + 31) // 32))
+    return {"tag": tag, "box": bytes(a ^ b for a, b in zip(data, stream)).hex()}
 
 
 def load_private():
@@ -315,6 +327,8 @@ def main():
     witness = (private.get("witness") or "").strip().lower()
     min_catches = int(private.get("min_catches") or 0)
     proofs, payouts, caught, rank = [], [], set(), {}
+    details = json.loads(private.get("details") or "{}") if isinstance(private.get("details"), str) else (private.get("details") or {})
+    whispers = {}
     guessed = set()
     guesses = [c for c in found if c.get("accuse")]
     for c in found:
@@ -333,6 +347,9 @@ def main():
                 caught.add((pid, d["id"]))
                 rank[d["id"]] = rank.get(d["id"], 0) + 1
                 pos = rank[d["id"]]
+            if in_window and pid and c.get("key") and details.get(d["id"]):
+                w = whisper(c["key"], d["id"], details[d["id"]])
+                whispers[w["tag"]] = w
             proofs.append({"txid": c["txid"], "round_id": d["id"], "seat": c["seat"], "height": c["height"],
                            "ok": ok, "rank": pos, "player": pid})
             print(f"  claim at block {c['height']}: {d['label']}, "
@@ -381,7 +398,7 @@ def main():
         if c["reply"]:
             payouts.append({"txid": c["txid"], "reply_to": c["reply"]})
 
-    print(f"chain tip read: {tip}; drops opened: {len(round_rows)}; claims: {len(proofs)}; counted: {sum(p['ok'] for p in proofs)}")
+    print(f"chain tip read: {tip}; drops opened: {len(round_rows)}; claims: {len(proofs)}; counted: {sum(p['ok'] for p in proofs)}; details sealed: {len(whispers)}")
     if DRY:
         for r in round_rows:
             print(json.dumps(r))
@@ -394,6 +411,11 @@ def main():
         supa("POST", "witness_proofs?on_conflict=txid", proofs, "resolution=merge-duplicates,return=minimal")
     if payouts:
         supa("POST", "witness_payouts?on_conflict=txid", payouts, "resolution=ignore-duplicates,return=minimal")
+    if whispers:
+        try:
+            supa("POST", "witness_whispers?on_conflict=tag", list(whispers.values()), "resolution=ignore-duplicates,return=minimal")
+        except Exception as e:
+            print("private details not written:", e, file=sys.stderr)
     supa("PATCH", "witness_reader?id=eq.1", {"synced_height": tip, "synced_at": iso(now)}, "return=minimal")
 
 
